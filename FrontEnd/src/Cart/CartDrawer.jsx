@@ -71,7 +71,7 @@ function CartDrawer() {
               return (
                 <div key={index} className="flex gap-4">
                   {/* Image */}
-                  <div className="w-24 h-32 flex-shrink-0 bg-gray-50 rounded-md overflow-hidden">
+                  <div className="w-24 h-32 shrink-0 bg-gray-50 rounded-md overflow-hidden">
                     <img
                       src={item.variant.images[0]}
                       alt={item.title}

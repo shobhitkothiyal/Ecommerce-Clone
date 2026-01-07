@@ -17,7 +17,7 @@ function Header() {
         </span>
       </div>
 
-      <div className="flex w-full h-[80px] items-center justify-between">
+      <div className="flex w-full h-20 items-center justify-between">
         <div className="flex items-center ml-15 cursor-pointer" onClick={() => navigate("/")}>
           <img
             class="inline-block "
@@ -29,7 +29,7 @@ function Header() {
         <div className="flex items-end  gap-4 cursor-pointer mr-10">
         {/* Search Icon */}
         <svg
-          class="w-[18px] h-[18px] flex"
+          class="w-4.5 h-4.5 flex"
           fill="currentColor"
           stroke="currentColor"
           xmlns="http://www.w3.org/2000/svg"
@@ -63,7 +63,7 @@ function Header() {
         
        <div className="relative">
                 <svg
-          className="w-[20px] h-[20px] flex"
+          className="w-5 h-5 flex"
           fill="currentColor"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 576 512"
@@ -80,7 +80,7 @@ function Header() {
         {/* Cart Icon */}
         <div className="relative">        
           <svg
-            className="w-[20px] h-[20px] flex"
+            className="w-5 h-5 flex"
             fill="currentColor"
             stroke="currentColor"
             xmlns="http://www.w3.org/2000/svg"
@@ -98,8 +98,8 @@ function Header() {
         </div>
       </div>
 
-      <div className="w-full bg-[#252525] h-[55px] flex">
-  <div className="text-white flex items-center gap-4 max-w-[1150px] h-full mx-10 ">
+      <div className="w-full bg-[#252525] h-13.75 flex">
+  <div className="text-white flex items-center gap-4 max-w-287.5 h-full mx-10 ">
 
     {HeaderNavigation.map((data) => (
       <div
@@ -121,8 +121,8 @@ function Header() {
                 className="
                   absolute
                   left-0
-                  bottom-[-4px]
-                  h-[2px]
+                  bottom-1
+                  h-px
                   w-[110%]
                   bg-[#F4F4F4]
                   transform
@@ -149,14 +149,14 @@ function Header() {
             className="
               absolute
               left-0
-              top-[55px]
+              top-13.75
               bg-white
               text-gray-500
               w-56
               shadow-lg
               z-50
               transform
-              translate-y-[12px]
+              translate-y-2
               opacity-0
               pointer-events-none
               transition-all

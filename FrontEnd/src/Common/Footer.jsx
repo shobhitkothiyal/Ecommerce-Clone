@@ -41,7 +41,7 @@ function Footer() {
                       <span
                         className="
           absolute left-0 -bottom-1
-          h-[1px] w-full bg-black
+          h-px w-full bg-black
           scale-x-0 origin-left
           transition-transform duration-400 ease-out
           group-hover:scale-x-100
