@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../Context/CartContext";
 
-function ProductCard({ product }) {
+function ProductCard({ product, onQuickView }) {
   const navigate = useNavigate();
   const { wishlistItems, addToWishlist, removeFromWishlist } = useCart();
 
@@ -22,6 +22,12 @@ function ProductCard({ product }) {
       ? removeFromWishlist(product.id)
       : addToWishlist(product);
   };
+
+  const handleQuickViewClick = (e) => {
+  e.stopPropagation();
+  onQuickView && onQuickView(product);
+};
+
   return (
     <div
       className="group cursor-pointer relative isolate"
@@ -105,7 +111,7 @@ function ProductCard({ product }) {
 
           {/* Quick View */}
           <div className="relative group/tooltip">
-            <button className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:bg-black hover:text-white transition-all duration-300">
+            <button onClick={handleQuickViewClick} className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:bg-black hover:text-white transition-all duration-300">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -128,11 +134,13 @@ function ProductCard({ product }) {
               Quick view
             </span>
           </div>
+          
         </div>
+        
 
         {/* Select Options */}
         <button
-          onClick={(e) => e.stopPropagation()}
+          onClick={handleQuickViewClick}
           className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-[2px] hover:bg-black hover:text-white text-black py-2.5 text-sm font-medium rounded shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-20"
         >
           Select options

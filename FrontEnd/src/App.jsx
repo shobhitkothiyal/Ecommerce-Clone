@@ -16,6 +16,8 @@ import ShippingAndReturns from "./ShippingAndReturns/ShippingAndReturns";
 import PrivacyPolicy from "./PrivacyAndPolicy/PrivacyAndPolicy";
 import CampusAmbassador from "./CampusAmbassador/CampusAmbassador";
 import SizeChart from "./SizeChart/SizeChart";
+import ScrollToTop from "../ScrollToTop";
+import QuickViewModal from "./Product/QuickViewModal";
 
 function App() {
   return (
@@ -23,6 +25,8 @@ function App() {
       <FloatingButtons />
       <Headers />
       <CartDrawer />
+
+      <ScrollToTop />
 
       <Routes>
         <Route path="/" element={<Home />} />

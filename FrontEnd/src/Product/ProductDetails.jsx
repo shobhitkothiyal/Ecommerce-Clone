@@ -19,9 +19,9 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
-import ProductData from "./ProductData.js";
-import ProductCard from "./ProductCard.jsx";
-import { useCart } from "../Context/CartContext.jsx";
+import ProductData from "./ProductData";
+import ProductCard from "./ProductCard";
+import { useCart } from "../Context/CartContext";
 
 const AccordionItem = ({ title, isOpen, onToggle, children }) => (
   <div className="border-b border-gray-200">
@@ -70,9 +70,7 @@ function ProductDetails() {
 
   useEffect(() => {
     // Find product by ID
-    const foundProduct = ProductData.find(
-      (p) => String(p.id) === String(productId)
-    );
+    const foundProduct = ProductData.find((p) => p.id === parseInt(productId));
     if (foundProduct) {
       setProduct(foundProduct);
       if (foundProduct.variants && foundProduct.variants.length > 0) {
@@ -295,50 +293,21 @@ function ProductDetails() {
               </h1>
               <div className="flex gap-2">
                 <button
-                      onClick={() => {
-                        if (isWishlisted) {
-                          removeFromWishlist(product.id);
-                        } else {
-                          addToWishlist(product);
-                        }
-                      }}
-                      className={`relative group p-2 rounded-full border border-gray-200 
-                        transition-all duration-200 ease-in-out
-                        ${
-                          isWishlisted
-                            ? "bg-black text-white"
-                            : "bg-transparent text-gray-600 hover:bg-black hover:text-white"
-                        }
-                      `}
-                    >
-                  {/* Tooltip */}
-                  <span
-                    className="absolute right-full top-1/2 -translate-y-1/2 mr-2
-                    bg-black text-white text-xs px-3 py-2 rounded whitespace-nowrap z-50
-                    opacity-0 translate-x-2
-                    group-hover:opacity-100 group-hover:translate-x-0
-                    transition-all duration-200 ease-out"
-                  >
-                    {isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-
-                    {/* Arrow pointing RIGHT */}
-                      <span
-                      className="absolute left-full top-1/2 -translate-y-1/2
-                      w-0 h-0 border-t-4 border-b-4 border-l-4
-                      border-t-transparent border-b-transparent border-l-black">
-
-                      </span>
-                  </span>
-
-                  {/* Star Icon */}
-                  <svg
-                    class="w-5 h-5 flex"
-                    fill="currentColor"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 576 512"
-                  >
-                    <path d="M528.1 171.5L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6zM388.6 312.3l23.7 138.4L288 385.4l-124.3 65.3 23.7-138.4-100.6-98 139-20.2 62.2-126 62.2 126 139 20.2-100.6 98z"></path>
-                  </svg>
+                  onClick={() => {
+                    if (isWishlisted) {
+                      removeFromWishlist(product.id);
+                    } else {
+                      addToWishlist(product);
+                    }
+                  }}
+                  className={`p-2 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors ${
+                    isWishlisted ? "text-black fill-black" : "text-gray-600"
+                  }`}
+                >
+                  <FiStar
+                    size={20}
+                    fill={isWishlisted ? "currentColor" : "none"}
+                  />
                 </button>
               </div>
             </div>
@@ -381,7 +350,7 @@ function ProductDetails() {
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`min-w-12 h-12 flex items-center justify-center border font-medium transition-all duration-200 ${
+                    className={`min-w-13.5 h-13.5 rounded-full flex items-center justify-center border font-ligh transition-all duration-200 ${
                       selectedSize === size
                         ? "border-black bg-black text-white"
                         : "border-gray-200 hover:border-black text-gray-900"
@@ -399,22 +368,47 @@ function ProductDetails() {
                 Color:{" "}
                 <span className="font-normal">{selectedVariant.color}</span>
               </p>
+
               <div className="flex gap-4">
                 {product.variants.map((variant) => (
-                  <button
-                    key={variant.color}
-                    onClick={() => handleColorChange(variant)}
-                    className={`w-10 h-10 rounded-full border-2 p-1 transition-all duration-300 ${
-                      selectedVariant.color === variant.color
-                        ? "border-black scale-110"
-                        : "border-transparent hover:border-gray-300 hover:scale-105"
-                    }`}
-                  >
+                  <div key={variant.color} className="relative group">
+                    <button
+                      onClick={() => handleColorChange(variant)}
+                      className={`w-10 h-10 rounded-full border-2 p-1 transition-all duration-300 ${
+                        selectedVariant.color === variant.color
+                          ? "border-black scale-110"
+                          : "border-transparent hover:border-gray-300 hover:scale-105"
+                      }`}
+                    >
+                      <div
+                        className="w-full h-full rounded-full shadow-sm"
+                        style={{ backgroundColor: variant.hex }}
+                      />
+                    </button>
+
+                    {/* Tooltip */}
                     <div
-                      className="w-full h-full rounded-full shadow-sm"
-                      style={{ backgroundColor: variant.hex }}
-                    />
-                  </button>
+                      className="
+            absolute bottom-full left-1/2 -translate-x-1/2 mb-2
+            px-3 py-1 bg-black text-white text-xs rounded
+            opacity-0 group-hover:opacity-100
+            transition-all duration-300
+            whitespace-nowrap z-40
+          "
+                    >
+                      {variant.color}
+
+                      {/* Arrow */}
+                      <div
+                        className="
+              absolute top-full left-1/2 -translate-x-1/2
+              w-0 h-0
+              border-l-4 border-r-4 border-t-4
+              border-l-transparent border-r-transparent border-t-black
+            "
+                      />
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
