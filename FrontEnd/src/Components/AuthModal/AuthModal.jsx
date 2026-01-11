@@ -74,7 +74,7 @@ const AuthModal = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-4">
       {/* Main Container - Purple Gradient Background */}
-      <div className="relative flex w-[900px] h-[450px] bg-linear-to-b from-[#8A2BE2] to-[#B026FF] rounded-2xl overflow-hidden shadow-2xl items-center">
+      <div className="relative flex w-225 h-112.5 bg-linear-to-b from-[#8A2BE2] to-[#B026FF] rounded-2xl overflow-hidden shadow-2xl items-center">
         {/* Close Button - Top Right of the Main Container */}
         <button
           onClick={onClose}
