@@ -30,8 +30,36 @@ const createOrder = async (req, res) => {
   }
 };
 
+const cancelOrder = async (req, res) => {
+  try {
+    const order = await orderService.cancelOrder(req.params.id, req.user._id);
+    res.status(200).send(order);
+  } catch (error) {
+    res.status(400).send({ error: error.message });
+  }
+};
+
+const requestReturn = async (req, res) => {
+  try {
+    const payload = { ...req.body };
+    if (req.files && req.files.length > 0) {
+      payload.returnImages = req.files.map((file) => file.path);
+    }
+    const order = await orderService.requestReturn(
+      req.params.id,
+      req.user._id,
+      payload,
+    );
+    res.status(200).send(order);
+  } catch (error) {
+    res.status(400).send({ error: error.message });
+  }
+};
+
 export default {
   findUserOrders,
   findOrderById,
   createOrder,
+  cancelOrder,
+  requestReturn,
 };

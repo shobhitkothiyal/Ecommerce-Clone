@@ -59,6 +59,37 @@ const orderSchema = new mongoose.Schema({
     required: true,
     default: "PENDING",
   },
+  // New fields for Cancel/Return feature
+  returnStatus: {
+    type: String,
+    enum: ["NONE", "REQUESTED", "APPROVED", "REJECTED", "COMPLETED"],
+    default: "NONE",
+  },
+  returnRequestType: {
+    type: String,
+    enum: ["RETURN", "EXCHANGE"],
+    default: "RETURN",
+  },
+  returnReason: {
+    type: String,
+    default: null,
+  },
+  returnDescription: {
+    type: String,
+    default: null,
+  },
+  returnImages: [
+    {
+      type: String,
+    },
+  ],
+  returnAdminNote: String,
+  returnDeclineReason: String,
+  returnApprovedDate: Date,
+  cancelReason: {
+    type: String,
+    default: null,
+  },
   totalItem: {
     type: Number,
     required: true,

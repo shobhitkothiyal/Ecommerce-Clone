@@ -71,6 +71,16 @@ const deleteOrder = async (req, res) => {
   }
 };
 
+const approveReturn = async (req, res) => {
+  const orderId = req.params.orderId;
+  try {
+    const order = await orderService.approveReturn(orderId, req.body);
+    return res.status(200).send(order);
+  } catch (error) {
+    return res.status(500).send({ error: error.message });
+  }
+};
+
 // Add outForDelivery and other statuses if service supports them,
 // for now service has confirmed, ship, deliver, cancel.
 // User wants "Out For Delivery" too based on logs/Action.js.
@@ -102,6 +112,7 @@ export default {
   shipOrder,
   deliverOrder,
   cancelledOrder,
+  approveReturn,
   deleteOrder,
   outForDelivery,
   getUsersOrders,

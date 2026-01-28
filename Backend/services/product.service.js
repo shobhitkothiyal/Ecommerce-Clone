@@ -137,6 +137,7 @@ async function findProductById(id) {
     console.error("Product not found for ID:", id);
     throw new Error("Product not found");
   }
+
   return product;
 }
 
