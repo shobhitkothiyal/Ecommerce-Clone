@@ -12,7 +12,7 @@ import {
   UPDATE_CART_ITEM_FAILURE,
   UPDATE_CART_ITEM_REQUEST,
   UPDATE_CART_ITEM_SUCCESS,
-} from "./actionType";
+} from "./ActionType";
 
 const API_BASE_URL =
   import.meta.env.VITE_BACKEND_URL || "http://localhost:8000/api";
@@ -73,11 +73,68 @@ export const updateCartItem = (reqData) => async (dispatch) => {
       reqData.data,
       {
         headers: { Authorization: `Bearer ${token}` },
-      }
+      },
     );
     dispatch({ type: UPDATE_CART_ITEM_SUCCESS, payload: response.data });
     dispatch(getCart());
   } catch (error) {
     dispatch({ type: UPDATE_CART_ITEM_FAILURE, payload: error.message });
+  }
+};
+
+export const applyCoupon = (code) => async (dispatch) => {
+  dispatch({ type: "APPLY_COUPON_REQUEST" });
+  try {
+    const token = localStorage.getItem("jwt");
+    const response = await axios.post(
+      `${API_BASE_URL}/cart/apply-coupon`,
+      { code },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    dispatch({ type: "APPLY_COUPON_SUCCESS", payload: response.data });
+    // response.data IS the cart object, so we can also update GET_CART_SUCCESS or just rely on reducer to update 'cart'
+  } catch (error) {
+    dispatch({
+      type: "APPLY_COUPON_FAILURE",
+      payload: error.response?.data?.error || error.message,
+    });
+  }
+};
+
+export const removeCoupon = () => async (dispatch) => {
+  dispatch({ type: "REMOVE_COUPON_REQUEST" });
+  try {
+    const token = localStorage.getItem("jwt");
+    const response = await axios.put(
+      `${API_BASE_URL}/cart/remove-coupon`,
+      {},
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    dispatch({ type: "REMOVE_COUPON_SUCCESS", payload: response.data });
+  } catch (error) {
+    dispatch({ type: "REMOVE_COUPON_FAILURE", payload: error.message });
+  }
+};
+
+export const clearCartAction = () => async (dispatch) => {
+  dispatch({ type: "CLEAR_CART_REQUEST" });
+  try {
+    const token = localStorage.getItem("jwt");
+    const { data } = await axios.delete(`${API_BASE_URL}/cart`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    dispatch({ type: "CLEAR_CART_SUCCESS", payload: data });
+  } catch (error) {
+    dispatch({
+      type: "CLEAR_CART_FAILURE",
+      payload:
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message,
+    });
   }
 };

@@ -44,6 +44,14 @@ const productSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  price: {
+    type: Number,
+    required: false, // Not strictly required at DB level to avoid migration issues, but enforced in logic
+  },
+  discountedPrice: {
+    type: Number,
+    required: false,
+  },
   description: {
     type: String,
   },
@@ -59,11 +67,8 @@ const productSchema = new mongoose.Schema({
     },
   ],
   details: {
-    fabric: String,
-    fit: String,
-    neck: String,
-    sleeve: String,
-    length: String,
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
   },
   createdAt: {
     type: Date,

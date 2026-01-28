@@ -34,6 +34,10 @@ const AddProductForm = ({ readOnly = false }) => {
     details: [{ key: "", value: "" }],
   });
 
+  // Main Image State
+  const [mainImage, setMainImage] = useState(null);
+  const [mainImagePreview, setMainImagePreview] = useState("");
+
   const [variants, setVariants] = useState([
     {
       color: "",
@@ -42,9 +46,12 @@ const AddProductForm = ({ readOnly = false }) => {
       files: [],
       previews: [],
       stock: [
+        { size: "XS", quantity: 0 },
         { size: "S", quantity: 0 },
         { size: "M", quantity: 0 },
         { size: "L", quantity: 0 },
+        { size: "XL", quantity: 0 },
+        { size: "XXL", quantity: 0 },
       ],
     },
   ]);
@@ -67,13 +74,21 @@ const AddProductForm = ({ readOnly = false }) => {
         secondLevelCategory: productToUpdate.secondLevelCategory || "",
         thirdLevelCategory:
           productToUpdate.category?.name || productToUpdate.category || "",
-        details: productToUpdate.details
-          ? Object.entries(productToUpdate.details).map(([key, value]) => ({
-              key,
-              value,
-            }))
+        details: Array.isArray(productToUpdate.details)
+          ? productToUpdate.details.map((d) => ({
+            key: d.key || "",
+            value: d.value || "",
+          }))
           : [{ key: "", value: "" }],
       });
+
+      // Set Main Image Preview if exists
+      if (productToUpdate.images && productToUpdate.images.length > 0) {
+        // Assuming images is an array of strings
+        setMainImagePreview(productToUpdate.images[0]);
+      } else if (typeof productToUpdate.imageUrl === "string") {
+        setMainImagePreview(productToUpdate.imageUrl);
+      }
 
       if (productToUpdate.variants && productToUpdate.variants.length > 0) {
         const mappedVariants = productToUpdate.variants.map((v) => {
@@ -86,9 +101,12 @@ const AddProductForm = ({ readOnly = false }) => {
           }
           if (stockArray.length === 0) {
             stockArray = [
+              { size: "XS", quantity: 0 },
               { size: "S", quantity: 0 },
               { size: "M", quantity: 0 },
               { size: "L", quantity: 0 },
+              { size: "XL", quantity: 0 },
+              { size: "XXL", quantity: 0 },
             ];
           }
 
@@ -97,7 +115,7 @@ const AddProductForm = ({ readOnly = false }) => {
             hex: v.hex || "#000000",
             basePrice: v.price || "",
             files: [],
-            previews: v.images || [],
+            previews: v.images || [], // assuming v.images contains URLs
             stock: stockArray,
           };
         });
@@ -120,11 +138,13 @@ const AddProductForm = ({ readOnly = false }) => {
     }
   };
 
-  // Main Images (kept for consistency though may be unused in this specific file version)
-  const handleMainFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    // setMainFiles(files); // setMainFiles is missing in state given context, omitting call.
-    // logic seems to use variants[0].files for main images now.
+  // Main Image Handler
+  const handleMainImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setMainImage(file);
+      setMainImagePreview(URL.createObjectURL(file));
+    }
   };
 
   // --- Variant Handlers ---
@@ -138,9 +158,12 @@ const AddProductForm = ({ readOnly = false }) => {
         files: [],
         previews: [],
         stock: [
+          { size: "XS", quantity: 0 },
           { size: "S", quantity: 0 },
           { size: "M", quantity: 0 },
           { size: "L", quantity: 0 },
+          { size: "XL", quantity: 0 },
+          { size: "XXL", quantity: 0 },
         ],
       },
     ]);
@@ -163,8 +186,65 @@ const AddProductForm = ({ readOnly = false }) => {
   const handleVariantFileChange = (index, e) => {
     const files = Array.from(e.target.files);
     const updated = [...variants];
-    updated[index].files = files;
-    updated[index].previews = files.map((f) => URL.createObjectURL(f));
+
+    // Append new files to existing ones
+    const existingFiles = updated[index].files || [];
+    const existingPreviews = updated[index].previews || [];
+
+    updated[index].files = [...existingFiles, ...files];
+    const newPreviews = files.map((f) => URL.createObjectURL(f));
+    updated[index].previews = [...existingPreviews, ...newPreviews];
+
+    setVariants(updated);
+
+    // Reset inputs value to allow selecting same file again if needed
+    e.target.value = "";
+  };
+
+  const handleSetMainVariantImage = (vIndex, imgIndex) => {
+    const updated = [...variants];
+    const variant = updated[vIndex];
+
+    // Swap files
+    if (variant.files && variant.files.length > imgIndex) {
+      const file = variant.files[imgIndex];
+      const newFiles = [...variant.files];
+      newFiles.splice(imgIndex, 1);
+      newFiles.unshift(file);
+      variant.files = newFiles;
+    }
+
+    // Swap previews
+    if (variant.previews && variant.previews.length > imgIndex) {
+      const preview = variant.previews[imgIndex];
+      const newPreviews = [...variant.previews];
+      newPreviews.splice(imgIndex, 1);
+      newPreviews.unshift(preview);
+      variant.previews = newPreviews;
+    }
+
+    setVariants(updated);
+  };
+
+  const handleDeleteVariantImage = (vIndex, imgIndex) => {
+    const updated = [...variants];
+    const variant = updated[vIndex];
+
+    // Remove from files
+    if (variant.files && variant.files.length > imgIndex) {
+      variant.files.splice(imgIndex, 1);
+    }
+
+    // Remove from previews
+    if (variant.previews && variant.previews.length > imgIndex) {
+      // Revoke object URL to avoid memory leaks if it's a blob
+      const url = variant.previews[imgIndex];
+      if (typeof url === "string" && url.startsWith("blob:")) {
+        URL.revokeObjectURL(url);
+      }
+      variant.previews.splice(imgIndex, 1);
+    }
+
     setVariants(updated);
   };
 
@@ -258,19 +338,36 @@ const AddProductForm = ({ readOnly = false }) => {
       payload.append("thirdLevelCategory", formData.thirdLevelCategory || "");
 
       // Append Details
-      // Convert details array to object
-      const detailsMap = {};
-      formData.details.forEach((d) => {
-        if (d.key && d.value) detailsMap[d.key] = d.value;
-      });
-      payload.append("details", JSON.stringify(detailsMap));
+      const cleanedDetails = formData.details.filter(
+        (d) => d.key && d.key.trim() !== "",
+      );
 
-      // 2. Main Images (Use First Variant's images as Main Images)
-      if (variants[0]?.files?.length > 0) {
-        variants[0].files.forEach((f) => payload.append("images", f));
+      payload.append("details", JSON.stringify(cleanedDetails));
+
+      // 2. Main Images
+      if (mainImage) {
+        payload.append("images", mainImage);
+      } else if (isEditing && mainImagePreview) {
+        // If editing and no new file selected, we might want to preserve existing.
+        // The backend logic checks for `existingImageUrls` or we can just not send `images`.
+        // However, if we want to BE EXPLICIT about current images, we should send them?
+        // Current backend controller: "if (req.files && req.files.length > 0) ... mainImages = ... if (mainImages.length > 0) ..."
+        // It seems if we don't send NEW files, it might preserve or we need to handle "existingImageUrls".
+        // Let's pass existing image URL as a string if no new file is there, blindly?
+        // No, typically file inputs are for NEW files.
+        // If we want to keep existing, we might need to send `existingImageUrls`.
+        // Let's check `product.controller.js` again. It reads `productData.existingImageUrls`.
+        // So let's append that.
+        payload.append("existingImageUrls", JSON.stringify([mainImagePreview]));
       }
 
       // VALIDATION
+      // Ensure we have a main image (either new one or existing one)
+      if (!mainImage && !mainImagePreview) {
+        // Optionally make main image mandatory?
+        // throw new Error("Main Product Image is required.");
+      }
+
       if (variants.length === 0) {
         throw new Error("At least one variant is required.");
       }
@@ -448,6 +545,8 @@ const AddProductForm = ({ readOnly = false }) => {
                 disabled={readOnly}
               />
             </div>
+
+
             <div className="md:col-span-2">
               <label className="block text-sm mb-2 text-gray-400">
                 Description <span className="text-red-500">*</span>
@@ -565,6 +664,7 @@ const AddProductForm = ({ readOnly = false }) => {
                   className="w-full bg-black/50 border border-zinc-700 rounded-lg px-4 py-3 disabled:opacity-50"
                   disabled={readOnly}
                 />
+
                 {!readOnly && (
                   <button
                     type="button"
@@ -695,21 +795,55 @@ const AddProductForm = ({ readOnly = false }) => {
                   Variant Images
                 </label>
                 {!readOnly && (
-                  <input
-                    type="file"
-                    multiple
-                    onChange={(e) => handleVariantFileChange(vIndex, e)}
-                    className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer"
-                  />
-                )}
-                <div className="flex gap-3 mt-3">
-                  {variant.previews.map((src, i) => (
-                    <img
-                      key={i}
-                      src={src}
-                      className="w-16 h-16 object-cover rounded border border-zinc-600"
-                      alt="var"
+                  <>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={(e) => handleVariantFileChange(vIndex, e)}
+                      className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Select multiple files. Click again to add more.</p>
+                  </>
+                )}
+                <div className="flex gap-3 mt-3 flex-wrap">
+                  {variant.previews.map((src, i) => (
+                    <div key={i} className="relative group">
+                      <img
+                        src={src}
+                        className={`w-20 h-20 object-cover rounded border-2 ${i === 0 ? "border-indigo-500" : "border-zinc-600"
+                          }`}
+                        alt="var"
+                      />
+                      {i === 0 && (
+                        <div className="absolute top-0 left-0 bg-indigo-600 text-white text-[10px] px-1 rounded-br">
+                          Main
+                        </div>
+                      )}
+                      {!readOnly && (
+                        <>
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteVariantImage(vIndex, i)}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            title="Remove Image"
+                          >
+                            ×
+                          </button>
+
+                          {/* Set as Main Overlay (skip for first item) */}
+                          {i !== 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetMainVariantImage(vIndex, i)}
+                              className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-bold transition-opacity rounded"
+                            >
+                              Set as Main
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

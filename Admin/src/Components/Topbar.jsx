@@ -13,7 +13,7 @@ const Topbar = ({ toggleSidebar }) => {
     navigate("/login");
   };
   return (
-    <header className="h-16.25 bg-zinc-900 border-b border-white/5 px-4 lg:px-6 flex items-center justify-between sticky top-0 z-20">
+    <header className="h-[65px] bg-zinc-900 border-b border-white/5 px-4 lg:px-6 flex items-center justify-between sticky top-0 z-20">
       {/* Left Side - Hamburger + Logo */}
       <div className="flex items-center gap-4">
         <button

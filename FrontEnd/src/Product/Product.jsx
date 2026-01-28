@@ -74,11 +74,22 @@ function Product() {
     const [minPrice, maxPrice] =
       priceValue === null ? [0, 100000] : priceValue.split("-").map(Number);
 
+    // Get Search Query
+    const searchQuery = searchParams.get("q");
+
     // Parse category from URL
     const queryCategory = searchParams.get("category");
     const paramCategory = LevelThree || levelTwo || levelOne || "";
-    // Priority: Query Param > Path Param
-    const categoryToUse = queryCategory || paramCategory;
+
+    // Priority: Search Query > Query Param > Path Param
+    // If search is present, we might want to ignore path category or treat it differently?
+    // For now, if we are on /pdt/search, levelOne is "search", so we should ignore levelOne as a category.
+
+    let categoryToUse = queryCategory || paramCategory;
+
+    if (levelOne === "search") {
+      categoryToUse = queryCategory || ""; // Don't use "search" as category
+    }
 
     const data = {
       category: categoryToUse,
@@ -91,6 +102,7 @@ function Product() {
       pageNumber: pageNumber - 1,
       pageSize: 12,
       stock: stock,
+      search: searchQuery, // Pass search query
     };
     dispatch(findProducts(data));
   }, [
@@ -225,22 +237,27 @@ function Product() {
                     <div className="relative group/swatch">
                       {item.type === "multi" ? (
                         <div
-                          className={`w-6 h-6 rounded-full bg-linear-to-r from-yellow-400 via-red-500 to-blue-500 shadow-sm border border-gray-300 transition-all ${
+                          className={`w-5 h-5 rounded-full bg-linear-to-r from-yellow-400 via-red-500 to-blue-500 shadow-sm border border-gray-300 transition-all ${
                             colorValue?.includes(item.name)
-                              ? "ring-2 ring-black"
-                              : ""
+                              ? "ring-2 ring-black ring-offset-1"
+                              : "hover:ring-1 hover:ring-black hover:ring-offset-1"
                           }`}
                         ></div>
                       ) : (
                         <div
-                          className={`w-6 h-6 rounded-full shadow-sm border border-gray-300 transition-all ${
+                          className={`w-5 h-5 rounded-full shadow-sm border border-gray-300 transition-all ${
                             colorValue?.includes(item.name)
-                              ? "ring-2 ring-black"
-                              : ""
+                              ? "ring-2 ring-black ring-offset-1"
+                              : "hover:ring-1 hover:ring-black hover:ring-offset-1"
                           }`}
                           style={{ backgroundColor: item.color }}
                         ></div>
                       )}
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-[10px] rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 w-auto">
+                        {item.name}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black"></div>
+                      </div>
                     </div>
                     <span
                       className={`text-[15px] group-hover:text-black ${
@@ -388,14 +405,67 @@ function Product() {
 
       {/* Main Content Area */}
       <div className="px-6 py-8">
+        {/* Search Header */}
+        {searchParams.get("q") && (
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-serif text-gray-900">
+                Results for "{searchParams.get("q")}"
+              </h1>
+              <p className="text-gray-500 text-sm mt-1">
+                {products?.content?.length || 0} items found
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                const newParams = new URLSearchParams(location.search);
+                newParams.delete("q");
+                if (levelOne === "search") {
+                  navigate("/pdt/all");
+                } else {
+                  navigate({ search: `?${newParams.toString()}` });
+                }
+              }}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-black"
+              title="Clear search"
+            >
+              <FiX size={24} />
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {products?.content?.map((product) => (
-            <ProductCard
-              key={product._id || product.id}
-              product={product}
-              onQuickView={setQuickViewProduct}
-            />
-          ))}
+          {products?.content?.length > 0 ? (
+            products?.content?.map((product) => (
+              <ProductCard
+                key={product._id || product.id}
+                product={product}
+                onQuickView={setQuickViewProduct}
+              />
+            ))
+          ) : (
+            <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <FiFilter className="text-gray-400 text-2xl" />
+              </div>
+              <h3 className="text-xl font-medium text-gray-900 mb-2">
+                No products found
+              </h3>
+              <p className="text-gray-500 max-w-sm mx-auto">
+                We couldn't find any products matching your search. Try
+                different keywords or filters.
+              </p>
+              <button
+                onClick={() => {
+                  navigate("/pdt/all"); // Or reset logic
+                  setIsFilterOpen(false);
+                }}
+                className="mt-6 text-[#9c27b0] font-medium hover:underline"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

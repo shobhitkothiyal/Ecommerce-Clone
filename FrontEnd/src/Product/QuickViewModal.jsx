@@ -23,9 +23,23 @@ function QuickViewModal({ product, onClose }) {
   const swiperRef = useRef(null);
 
   const [selectedColor, setSelectedColor] = useState(
-    product.variants?.[0]?.color || ""
+    product.variants?.[0]?.color || "",
   );
-  const [selectedSize, setSelectedSize] = useState("");
+
+  // Helper to get available sizes for a variant
+  const getAvailableSizes = (variant) => {
+    if (!variant?.stock) return [];
+    return Object.keys(variant.stock).filter((size) => variant.stock[size] > 0);
+  };
+
+  const [selectedSize, setSelectedSize] = useState(() => {
+    const initialVariant =
+      product.variants?.find(
+        (v) => v.color === (product.variants?.[0]?.color || ""),
+      ) || product.variants?.[0];
+    const sizes = getAvailableSizes(initialVariant);
+    return sizes.length > 0 ? sizes[0] : "";
+  });
   const [quantity, setQuantity] = useState(1);
 
   // Find the currently selected variant object based on color
@@ -36,7 +50,7 @@ function QuickViewModal({ product, onClose }) {
   // Get available sizes for the selected variant
   const availableSizes = currentVariant?.stock
     ? Object.keys(currentVariant.stock).filter(
-        (size) => currentVariant.stock[size] > 0
+        (size) => currentVariant.stock[size] > 0,
       )
     : [];
 
@@ -173,8 +187,8 @@ function QuickViewModal({ product, onClose }) {
                       selectedSize === size
                         ? "bg-black text-white border-black"
                         : isAvailable
-                        ? "bg-white text-gray-700 border-gray-300 hover:border-black"
-                        : "bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed box-decoration-slice"
+                          ? "bg-white text-gray-700 border-gray-300 hover:border-black"
+                          : "bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed box-decoration-slice"
                     }`}
                   >
                     {size}
@@ -189,22 +203,29 @@ function QuickViewModal({ product, onClose }) {
             <p className="text-sm font-medium mb-2">
               Color: <span className="text-gray-500">{selectedColor}</span>
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               {product.variants?.map((variant) => (
-                <button
-                  key={variant.color}
-                  onClick={() => {
-                    setSelectedColor(variant.color);
-                    setSelectedSize(""); // Reset size when color changes
-                  }}
-                  className={`relative w-8 h-8 rounded-full border border-gray-200 shadow-sm transition-all hover:scale-110 ${
-                    selectedColor === variant.color
-                      ? "ring-2 ring-black ring-offset-2"
-                      : ""
-                  }`}
-                  style={{ backgroundColor: variant.hex }}
-                  title={variant.color}
-                />
+                <div key={variant.color} className="relative group/swatch">
+                  <button
+                    onClick={() => {
+                      setSelectedColor(variant.color);
+                      // Auto-select first size for new color
+                      const newSizes = getAvailableSizes(variant);
+                      setSelectedSize(newSizes.length > 0 ? newSizes[0] : "");
+                    }}
+                    className={`relative w-5 h-5 rounded-full border border-gray-200 shadow-sm transition-all hover:scale-110 ${
+                      selectedColor === variant.color
+                        ? "ring-2 ring-black ring-offset-1"
+                        : "ring-1 ring-transparent hover:ring-black hover:ring-offset-1"
+                    }`}
+                    style={{ backgroundColor: variant.hex }}
+                  />
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-[10px] rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 w-auto">
+                    {variant.color}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black"></div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

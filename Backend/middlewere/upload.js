@@ -5,8 +5,8 @@ import cloudinary from "../config/cloudinary.js"; // Import configured cloudinar
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "uptownie_products", // Optional: separate folder in cloudinary
-    allowed_formats: ["jpg", "png", "jpeg", "webp"],
+    // folder: "uptownie_products", // Optional: separate folder in cloudinary
+    allowed_formats: ["jpg", "png", "jpeg", "webp", "avif"],
   },
 });
 

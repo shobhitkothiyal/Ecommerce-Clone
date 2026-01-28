@@ -1,6 +1,6 @@
 import express from "express";
 import productController from "../controller/product.controller.js";
-import authenticate from "../middlewere/authenticate-temp.js";
+import authenticate from "../middlewere/authenticate.js";
 import upload from "../middlewere/upload.js"
 
 const router = express.Router();

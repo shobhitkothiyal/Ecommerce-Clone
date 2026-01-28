@@ -4,10 +4,7 @@ import { FiStar, FiPlus } from "react-icons/fi";
 import { useCart } from "../Context/CartContext";
 
 import { useDispatch, useSelector } from "react-redux";
-import {
-  addItemToWishlist,
-  removeItemFromWishlist,
-} from "../Redux/Auth/actions.js";
+import { addItemToWishlist, removeItemFromWishlist } from "../Redux/Auth/actions";
 
 function ProductCard({ product, onQuickView }) {
   const navigate = useNavigate();
@@ -130,7 +127,7 @@ function ProductCard({ product, onQuickView }) {
           {product.variants?.map((variant, index) => (
             <div key={index} className="relative group/swatch">
               <div
-                className="w-6 h-6 rounded-full border border-gray-300 transition-all group-hover/swatch:ring-1 group-hover/swatch:ring-offset-2 group-hover/swatch:ring-black cursor-pointer"
+                className="w-4 h-4 rounded-full border border-gray-300 transition-all group-hover/swatch:ring-1 group-hover/swatch:ring-offset-1 group-hover/swatch:ring-black cursor-pointer"
                 style={{ backgroundColor: variant.hex }}
               ></div>
               {/* Tooltip */}

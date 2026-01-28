@@ -8,7 +8,14 @@ const PORT = process.env.PORT;
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: [process.env.FRONTEND_URL, process.env.FRONTEND_URL2],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 await DBConnect();
 
@@ -51,6 +58,21 @@ app.use("/api/queries", queryRoutes);
 
 import blogRoutes from "./routes/blog.route.js";
 app.use("/api/blogs", blogRoutes);
+
+import couponRoutes from "./routes/coupon.route.js";
+app.use("/api/coupons", couponRoutes);
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error("Globar Error Handler:", err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(500).json({
+    message: err.message || "Internal Server Error",
+    error: process.env.NODE_ENV === "development" ? err : {},
+  });
+});
 
 app.listen(PORT, () => {
   console.log("Server running on port:", PORT);

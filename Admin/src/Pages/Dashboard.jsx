@@ -46,7 +46,7 @@ const Dashboard = () => {
     <div className="bg-black min-h-screen text-gray-200">
       <ThemeProvider theme={customTheme}>
         <AdminPannel>
-          <div className="container mx-auto px-3 sm:px-4 py-4 max-w-400 ">
+          <div className="container mx-auto px-3 sm:px-4 py-4 max-w-[1600px] ">
             {/* Row 1 - Achievement & Monthly Overview */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
               <div className="lg:col-span-1">

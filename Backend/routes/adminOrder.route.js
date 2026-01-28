@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 import adminOrderController from "../controller/adminOrder.controller.js";
-import authenticate from "../middlewere/authenticate-temp.js";
+import authenticate from "../middlewere/authenticate.js";
 
 router.get(
   "/overview",

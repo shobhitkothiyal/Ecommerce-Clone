@@ -61,7 +61,11 @@ const Achivement = ({ sales }) => {
             color: "#818cf8", // Indigo-400
           }}
         >
-          {sales ? `${sales.toLocaleString()} INR` : "Loading..."}
+          {sales
+            ? `${Number(sales).toLocaleString("en-IN", {
+                maximumFractionDigits: 2,
+              })} INR`
+            : "Loading..."}
         </Typography>
 
         <Button

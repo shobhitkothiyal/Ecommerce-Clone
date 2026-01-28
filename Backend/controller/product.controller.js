@@ -4,6 +4,11 @@ const createProduct = async (req, res) => {
   try {
     let productData = { ...req.body };
 
+    // Ensure numbers
+    if (productData.price) productData.price = Number(productData.price);
+    if (productData.discountedPrice)
+      productData.discountedPrice = Number(productData.discountedPrice);
+
     // Parse JSON fields that might be stringified in FormData
     if (typeof productData.variants === "string") {
       try {
@@ -30,11 +35,21 @@ const createProduct = async (req, res) => {
       }
     }
 
+    // Parse 'details' JSON
+    if (typeof productData.details === "string") {
+      try {
+        productData.details = JSON.parse(productData.details);
+      } catch (e) {
+        console.error("Error parsing details JSON", e);
+        productData.details = {};
+      }
+    }
+
     // Handle Files
     if (req.files && req.files.length > 0) {
       // 1. Main Product Images
       const mainImages = req.files.filter(
-        (f) => f.fieldname === "images" || f.fieldname === "image"
+        (f) => f.fieldname === "images" || f.fieldname === "image",
       );
       if (mainImages.length > 0) {
         productData.images = mainImages.map((f) => f.path);
@@ -46,7 +61,7 @@ const createProduct = async (req, res) => {
       if (productData.variants && Array.isArray(productData.variants)) {
         productData.variants = productData.variants.map((variant, index) => {
           const variantFiles = req.files.filter(
-            (f) => f.fieldname === `variantImages_${index}`
+            (f) => f.fieldname === `variantImages_${index}`,
           );
           const variantImageUrls = variantFiles.map((f) => f.path);
 
@@ -65,7 +80,10 @@ const createProduct = async (req, res) => {
     const product = await productService.createProduct(productData);
     return res.status(201).send(product);
   } catch (error) {
-    console.error("Create product failed", error);
+    console.error(
+      "Create product failed",
+      JSON.stringify(error, Object.getOwnPropertyNames(error)),
+    );
     return res.status(500).send({ error: error.message });
   }
 };
@@ -84,6 +102,11 @@ const updateProduct = async (req, res) => {
   const productId = req.params.id;
   try {
     let productData = { ...req.body };
+
+    // Ensure numbers
+    if (productData.price) productData.price = Number(productData.price);
+    if (productData.discountedPrice)
+      productData.discountedPrice = Number(productData.discountedPrice);
 
     // Parse JSON fields
     if (typeof productData.variants === "string") {
@@ -107,11 +130,17 @@ const updateProduct = async (req, res) => {
       } catch (e) {}
     }
 
+    if (typeof productData.details === "string") {
+      try {
+        productData.details = JSON.parse(productData.details);
+      } catch (e) {}
+    }
+
     // Handle Files
     if (req.files && req.files.length > 0) {
       // 1. Main Images
       const mainImages = req.files.filter(
-        (f) => f.fieldname === "images" || f.fieldname === "image"
+        (f) => f.fieldname === "images" || f.fieldname === "image",
       );
       if (mainImages.length > 0) {
         const newUrls = mainImages.map((f) => f.path);
@@ -135,7 +164,7 @@ const updateProduct = async (req, res) => {
       if (productData.variants && Array.isArray(productData.variants)) {
         productData.variants = productData.variants.map((variant, index) => {
           const variantFiles = req.files.filter(
-            (f) => f.fieldname === `variantImages_${index}`
+            (f) => f.fieldname === `variantImages_${index}`,
           );
           const variantImageUrls = variantFiles.map((f) => f.path);
 
@@ -160,7 +189,10 @@ const updateProduct = async (req, res) => {
     const product = await productService.updateProduct(productId, productData);
     return res.status(201).send(product);
   } catch (error) {
-    console.error("Update error", error);
+    console.error(
+      "Update error",
+      JSON.stringify(error, Object.getOwnPropertyNames(error)),
+    );
     return res.status(500).send({ error: error.message });
   }
 };

@@ -554,19 +554,21 @@ const ProductsTable = () => {
                     <TableCell
                       sx={{
                         textAlign: "center",
-                        color: "white",
-                        fontWeight: "bold",
-                        cursor: "pointer",
+                        
                       }}
-                      onClick={() =>
-                        navigate(`/product-details/${item._id}`, {
-                          state: { product: item },
-                        })
-                      }
+
                     >
-                      <span className="hover:text-indigo-500 transition border-b border-transparent hover:border-indigo-500">
+                      <Button
+                        variant="text"
+                        onClick={() =>
+                          navigate(`/product-details/${item._id}`, {
+                            state: { product: item },
+                          })
+                        }
+                        sx={{ color: "#818cf8", fontWeight: "bold", cursor: "pointer" }}
+                      >
                         View Details
-                      </span>
+                      </Button>
                     </TableCell>
 
                     <TableCell sx={{ textAlign: "center" }}>

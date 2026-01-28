@@ -23,13 +23,13 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   findProductById,
   findProducts,
-} from "../Redux/Customers/Product/action.js";
+} from "../Redux/Customers/Product/action";
 import {
   addItemToWishlist,
   removeItemFromWishlist,
-} from "../Redux/Auth/actions.js";
+} from "../Redux/Auth/actions";
 import { addItemToCart } from "../Redux/Customers/Cart/Action";
-import ProductCard from "./ProductCard.jsx";
+import ProductCard from "./ProductCard";
 import { useCart } from "../Context/CartContext";
 
 const AccordionItem = ({ title, isOpen, onToggle, children }) => (
@@ -179,7 +179,7 @@ function ProductDetails() {
           {/* Left Side - Image Gallery */}
           <div className="flex gap-4 flex-col-reverse sm:flex-row w-full mx-auto lg:mx-0 sticky top-24">
             {/* Thumbnails */}
-            <div className="flex sm:flex-col gap-4 overflow-x-auto sm:overflow-visible scrollbar-hide py-2 sm:py-0 sm:w-20 lg:w-24 shrink-0 h-fit max-h-[70vh]">
+            <div className="flex sm:flex-col gap-4 overflow-x-auto sm:overflow-y-auto scrollbar-hide py-2 sm:py-0 sm:w-20 lg:w-24 shrink-0 h-fit max-h-[70vh]">
               {selectedVariant.images.map((img, index) => (
                 <div
                   key={index}
@@ -294,7 +294,7 @@ function ProductDetails() {
                   <FiChevronRight size={48} />
                 </button>
               </div>,
-              document.body
+              document.body,
             )}
 
           {/* Size Chart Modal */}
@@ -315,7 +315,7 @@ function ProductDetails() {
                   />
                 </div>
               </div>,
-              document.body
+              document.body,
             )}
 
           {/* Right Side - Product Details */}
@@ -387,19 +387,34 @@ function ProductDetails() {
                   (selectedVariant.stock instanceof Map
                     ? Array.from(selectedVariant.stock.keys())
                     : Object.keys(selectedVariant.stock || {})
-                  ).map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`min-w-12 h-12 flex items-center justify-center border font-medium transition-all duration-200 ${
-                        selectedSize === size
-                          ? "border-black bg-black text-white"
-                          : "border-gray-200 hover:border-black text-gray-900"
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
+                  ).map((size) => {
+                    const stockQty =
+                      selectedVariant.stock instanceof Map
+                        ? Number(selectedVariant.stock.get(size))
+                        : Number(selectedVariant.stock?.[size]);
+
+                    const isLowStock = stockQty > 0 && stockQty <= 5;
+
+                    return (
+                      <div key={size} className="relative group">
+                        <button
+                          onClick={() => setSelectedSize(size)}
+                          className={`min-w-12 h-12 flex items-center justify-center border font-medium transition-all duration-200 ${
+                            selectedSize === size
+                              ? "border-black bg-black text-white"
+                              : "border-gray-200 hover:border-black text-gray-900"
+                          } ${isLowStock ? "mb-2" : ""}`} // Add margin if low stock badge to prevent overlapping next row if wrapped tightly, though absolute positioning handles it mostly.
+                        >
+                          {size}
+                        </button>
+                        {isLowStock && (
+                          <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md whitespace-nowrap z-10 shadow-sm leading-none border border-white">
+                            {stockQty} Left
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             </div>
 
@@ -409,22 +424,24 @@ function ProductDetails() {
                 Color:{" "}
                 <span className="font-normal">{selectedVariant.color}</span>
               </p>
-              <div className="flex gap-4">
+              <div className="flex gap-4 items-center">
                 {product.variants.map((variant) => (
-                  <button
-                    key={variant.color}
-                    onClick={() => handleColorChange(variant)}
-                    className={`w-10 h-10 rounded-full border-2 p-1 transition-all duration-300 ${
-                      selectedVariant.color === variant.color
-                        ? "border-black scale-110"
-                        : "border-transparent hover:border-gray-300 hover:scale-105"
-                    }`}
-                  >
-                    <div
-                      className="w-full h-full rounded-full shadow-sm"
+                  <div key={variant.color} className="relative group/swatch">
+                    <button
+                      onClick={() => handleColorChange(variant)}
+                      className={`w-5 h-5 rounded-full border border-gray-200 transition-all duration-300 ${
+                        selectedVariant.color === variant.color
+                          ? "ring-2 ring-black ring-offset-1"
+                          : "ring-1 ring-transparent hover:ring-black hover:ring-offset-1"
+                      }`}
                       style={{ backgroundColor: variant.hex }}
-                    />
-                  </button>
+                    ></button>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-[10px] rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 w-auto">
+                      {variant.color}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black"></div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -487,47 +504,45 @@ function ProductDetails() {
                 onToggle={() => toggleAccordion("description")}
               >
                 <p className="mb-4">{product.description}</p>
-                <div className="mt-4">
-                  <p className="font-bold underline mb-2">Other Information:</p>
-                  <ul className="list-disc pl-5 space-y-2 marker:text-gray-400">
-                    <li>
-                      <span className="font-semibold text-gray-700">Type-</span>{" "}
-                      Shirt
-                    </li>
-                    <li>
-                      <span className="font-semibold text-gray-700">
-                        Fabric-
-                      </span>{" "}
-                      {product.details?.fabric}
-                    </li>
-                    <li>
-                      <span className="font-semibold text-gray-700">Fit-</span>{" "}
-                      {product.details?.fit}
-                    </li>
-                    <li>
-                      <span className="font-semibold text-gray-700">Neck-</span>{" "}
-                      {product.details?.neck}
-                    </li>
-                    <li>
-                      <span className="font-semibold text-gray-700">
-                        Sleeve-
-                      </span>{" "}
-                      {product.details?.sleeve}
-                    </li>
-                    <li>
-                      <span className="font-semibold text-gray-700">
-                        Length-
-                      </span>{" "}
-                      {product.details?.length}
-                    </li>
-                    <li>
-                      <span className="font-semibold text-gray-700">
-                        Occasion-
-                      </span>{" "}
-                      Party/Night out/Dinner
-                    </li>
-                  </ul>
-                </div>
+                {/* Other Information */}
+{Array.isArray(product.details) && product.details.length > 0 && (
+  <div className="mt-4">
+    <p className="font-bold underline mb-3">
+      Other Information:
+    </p>
+
+    <ul className="space-y-2">
+      {product.details.map((detail, index) => {
+        // Case 1: Heading only
+        if (detail.key && !detail.value) {
+          return (
+            <li
+              key={index}
+              className="text-sm font-semibold text-gray-800"
+            >
+              {detail.key}
+            </li>
+          );
+        }
+
+        // Case 2: Heading + Value
+        if (detail.key && detail.value) {
+          return (
+            <li key={index} className="text-sm text-gray-700">
+              <span className="font-semibold">
+                {detail.key}:
+              </span>{" "}
+              {detail.value}
+            </li>
+          );
+        }
+
+        return null;
+      })}
+    </ul>
+  </div>
+)}
+
               </AccordionItem>
 
               <AccordionItem

@@ -11,7 +11,8 @@ import {
   UPDATE_CART_ITEM_FAILURE,
   UPDATE_CART_ITEM_REQUEST,
   UPDATE_CART_ITEM_SUCCESS,
-} from "./actionType.js";
+  CLEAR_CART_SUCCESS,
+} from "./ActionType";
 
 const initialState = {
   cart: null,
@@ -63,9 +64,40 @@ export const cartReducer = (state = initialState, action) => {
 
     case ADD_ITEM_TO_CART_FAILURE:
     case GET_CART_FAILURE:
+    case CLEAR_CART_SUCCESS:
+      return {
+        ...state,
+        cart: {
+          ...state.cart,
+          cartItems: [],
+          totalItem: 0,
+          totalPrice: 0,
+          totalDiscountedPrice: 0,
+          discount: 0,
+          couponDiscount: 0,
+          couponCode: null,
+        },
+        loading: false,
+      };
     case REMOVE_CART_ITEM_FAILURE:
     case UPDATE_CART_ITEM_FAILURE:
+    case "APPLY_COUPON_FAILURE":
+    case "REMOVE_COUPON_FAILURE":
       return { ...state, loading: false, error: action.payload };
+
+    case "APPLY_COUPON_REQUEST":
+    case "REMOVE_COUPON_REQUEST":
+      return { ...state, loading: true, error: null };
+
+    case "APPLY_COUPON_SUCCESS":
+    case "REMOVE_COUPON_SUCCESS":
+      return {
+        ...state,
+        loading: false,
+        cart: action.payload,
+        cartItems: action.payload.cartItems, // Update items if needed? Usually just cart totals change but safe to sync
+        error: null,
+      };
 
     default:
       return state;

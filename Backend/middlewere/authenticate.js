@@ -2,7 +2,8 @@ import dotenv from "dotenv";
 dotenv.config();
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import userService from "../services/user.services.js";
+import * as userService from "../services/user.services.js";
+
 const authenticate = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];

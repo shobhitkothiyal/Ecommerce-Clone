@@ -15,21 +15,37 @@ import {
   getCart,
   removeCartItem,
   updateCartItem,
+  clearCartAction,
+  applyCoupon as applyCouponAction,
+  removeCoupon as removeCouponAction,
+  addItemToCart,
 } from "../Redux/Customers/Cart/Action";
-import { getUserAddresses, addAddress } from "../Redux/Auth/actions.js";
+import { getUserAddresses, addAddress } from "../Redux/Auth/actions";
 import { findProducts } from "../Redux/Customers/Product/action";
 import { useCart } from "../Context/CartContext";
 import confetti from "canvas-confetti";
 import axios from "axios";
 // import { API_BASE_URL } from "../config/apiConfig";
 const API_BASE_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
+  import.meta.env.VITE_BACKEND_URL || "http://localhost:8000/api";
+
+import ViewAllOffers from "./ViewAllOffers";
 
 function CartDrawer() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { cartItems } = useSelector((store) => store.cart);
-  const { cart } = useSelector((store) => store.cart); // total details?
+  const { cart, error } = useSelector((store) => store.cart);
+
+  // Calculate Subtotal dynamically to ensure it matches the displayed discounted prices
+  const subtotal = (cartItems || []).reduce((acc, item) => {
+    if (!item.product) return acc;
+    const variant = item.variant || item.product.variants?.[0];
+    const price = variant?.price || 0;
+    const discountPercent = item.product.discountedPercent || 0;
+    const discountedPrice = Math.round(price - (price * discountPercent) / 100);
+    return acc + discountedPrice * item.quantity;
+  }, 0);
   const { user } = useSelector((store) => store.auth);
   const { products } = useSelector((store) => store.product);
 
@@ -68,6 +84,13 @@ function CartDrawer() {
 
   const [isChangingAddress, setIsChangingAddress] = useState(false);
 
+  const [couponCode, setCouponCode] = useState("");
+  const [isOffersOpen, setIsOffersOpen] = useState(false);
+
+  const handleApplyCoupon = () => {
+    dispatch(applyCouponAction(couponCode));
+  };
+
   // Load Cart and Addresses
   useEffect(() => {
     if (isCartOpen) {
@@ -83,7 +106,7 @@ function CartDrawer() {
       // Check if addresses are populated (have firstName or streetAddress) logic
       // If we just check user.addresses, it should trigger on Redux update
       const validAddresses = user.addresses.filter(
-        (a) => typeof a === "object" && (a.firstName || a.name)
+        (a) => typeof a === "object" && (a.firstName || a.name),
       );
 
       if (validAddresses.length > 0) {
@@ -152,7 +175,7 @@ function CartDrawer() {
       const orderResponse = await axios.post(
         `${API_BASE_URL}/payments/create-order`,
         { amount: totalPayable, currency: "INR" },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       const {
@@ -178,7 +201,7 @@ function CartDrawer() {
                 razorpay_signature: response.razorpay_signature,
                 shippingAddress: selectedAddress, // Use selected address
               },
-              { headers: { Authorization: `Bearer ${token}` } }
+              { headers: { Authorization: `Bearer ${token}` } },
             );
 
             if (verifyResponse.data.success) {
@@ -214,7 +237,7 @@ function CartDrawer() {
   // Backend 'cart' object has totalPrice, totalDiscountedPrice, etc.
 
   // --- UI Helpers ---
-  const subtotal = cart?.totalPrice || 0;
+
   const discountThreshold1 = 3999;
   const discountThreshold2 = 8999;
 
@@ -239,11 +262,22 @@ function CartDrawer() {
     activeCouponCode = "HOLIDAY15";
   }
 
-  // Backend total might already apply product discounts.
-  // This frontend logic applies EXTRA cart-level discounts.
   // Backend 'totalPrice' is sum of item prices.
   // Calculated:
-  const discountAmount = (subtotal * activeDiscountPercent) / 100;
+  // User Requirement: Apply discount on the THRESHOLD amount, not the total amount.
+  // i.e., 12% of 3999 (fixed) or 15% of 8999 (fixed).
+  let discountAmount = 0;
+
+  if (cart?.couponCode) {
+    // If a backend coupon is applied, use the backend's calculated discount
+    discountAmount =
+      cart.couponDiscount || cart.totalPrice - cart.totalDiscountedPrice || 0;
+  } else if (activeDiscountPercent === 12) {
+    discountAmount = (discountThreshold1 * 12) / 100;
+  } else if (activeDiscountPercent === 15) {
+    discountAmount = (discountThreshold2 * 15) / 100;
+  }
+
   const finalTotal = subtotal - discountAmount;
   const shippingCharges = finalTotal > 3999 ? 0 : 50;
   const totalPayable = finalTotal + shippingCharges;
@@ -255,7 +289,7 @@ function CartDrawer() {
   const [prevDiscount, setPrevDiscount] = useState(0);
 
   const { products: recommendedProductsData } = useSelector(
-    (store) => store.product
+    (store) => store.product,
   );
 
   useEffect(() => {
@@ -336,8 +370,8 @@ function CartDrawer() {
                   {remainingFor12 > 0
                     ? `Add products worth ₹${remainingFor12.toLocaleString()} to unlock 12% off!`
                     : remainingFor15 > 0
-                    ? `Add products worth ₹${remainingFor15.toLocaleString()} to unlock 15% off!`
-                    : "You've unlocked maximum discount!"}
+                      ? `Add products worth ₹${remainingFor15.toLocaleString()} to unlock 15% off!`
+                      : "You've unlocked maximum discount!"}
                 </p>
                 <div className="relative w-full h-2 bg-gray-200 rounded-full mb-6">
                   <div
@@ -435,14 +469,18 @@ function CartDrawer() {
                               <div className="text-right shrink-0">
                                 <p className="font-bold text-sm text-gray-900">
                                   ₹
-                                  {(activeDiscountPercent > 0
-                                    ? item.discountedPrice / item.quantity
-                                    : item.price / item.quantity
-                                  ).toLocaleString(undefined, {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
+                                  {Math.round(
+                                    activeVariant.price -
+                                      (activeVariant.price *
+                                        (fullProduct.discountedPercent || 0)) /
+                                        100,
+                                  ).toLocaleString()}
                                 </p>
+                                {(fullProduct.discountedPercent || 0) > 0 && (
+                                  <p className="text-xs text-gray-400 line-through">
+                                    ₹{activeVariant.price.toLocaleString()}
+                                  </p>
+                                )}
                               </div>
                             </div>
 
@@ -506,45 +544,115 @@ function CartDrawer() {
                         </div>
                       );
                     })}
+                    {/* Empty Cart Button - Placed below products */}
+                    <div className="flex justify-center pt-2 border-t border-gray-100 mt-2">
+                      <button
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              "Are you sure you want to empty your cart?",
+                            )
+                          ) {
+                            dispatch(clearCartAction());
+                          }
+                        }}
+                        className="text-xs text-red-500 cursor-pointer font-bold hover:text-red-700 flex items-center gap-1"
+                      >
+                        <MdDeleteOutline /> Empty Cart
+                      </button>
+                    </div>
                   </div>
 
                   {/* Success Coupon Alert */}
-                  {activeDiscountPercent > 0 && cartItems.length > 0 && (
-                    <div className="bg-white px-4 mb-2">
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FaTag className="text-green-600" size={14} />
-                          <span className="font-bold text-sm text-gray-800">
-                            {activeCouponCode} applied
+                  {activeDiscountPercent > 0 &&
+                    cartItems.length > 0 &&
+                    !cart?.couponCode && (
+                      <div className="bg-white px-4 mb-2">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FaTag className="text-green-600" size={14} />
+                            <span className="font-bold text-sm text-gray-800">
+                              {activeCouponCode} applied
+                            </span>
+                          </div>
+                          <span className="text-sm font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded">
+                            Saved ₹
+                            {discountAmount.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                           </span>
                         </div>
-                        <span className="text-sm font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded">
-                          Saved ₹
-                          {discountAmount.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Coupon Input */}
                   <div className="bg-white p-4 mb-2">
-                    <div className="border border-green-200 rounded-lg p-3 bg-green-50/10 flex flex-col gap-2">
-                      <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-                        <span className="font-bold cursor-pointer hover:opacity-75 bg-green-200 rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
-                          %
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="Enter Coupon Code"
-                          className="bg-transparent w-full focus:outline-none placeholder:text-gray-400 text-black text-sm"
-                        />
+                    {cart?.couponCode ? (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FaTag className="text-green-600" size={14} />
+                          <div className="flex flex-col">
+                            <span className="font-bold text-sm text-gray-800">
+                              {cart.couponCode} applied
+                            </span>
+                            <span className="text-xs text-green-700 font-medium">
+                              Saved ₹
+                              {discountAmount.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => dispatch(removeCouponAction())}
+                          className="text-xs cursor-pointer hover:opacity-75 text-red-500 underline font-bold"
+                        >
+                          Remove
+                        </button>
                       </div>
-                    </div>
-                    <p className="text-center text-blue-600 text-xs font-bold mt-2 cursor-pointer hover:underline flex items-center justify-center gap-1">
+                    ) : (
+                      <div className="border border-green-200 rounded-lg p-3 bg-green-50/10 flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+                          <span className="font-bold cursor-pointer hover:opacity-75 bg-green-200 rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
+                            %
+                          </span>
+                          <input
+                            type="text"
+                            placeholder="Enter Coupon Code"
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value)}
+                            className="bg-transparent w-full focus:outline-none placeholder:text-gray-400 text-black text-sm"
+                          />
+                          <button
+                            onClick={handleApplyCoupon}
+                            disabled={!couponCode}
+                            className="text-xs cursor-pointer hover:opacity-105 hover:text-green-600 font-bold text-black uppercase disabled:opacity-50"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {(cart?.couponError || error) && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {cart?.couponError || error}
+                      </p>
+                    )}
+                    {/* Note: couponError isn't in Redux state "cart" object unless we put it there in reducer or response. 
+                        In my service update, I put couponError in the cart response object. So it should exist if sent back.
+                     */}
+
+                    <p
+                      onClick={() => setIsOffersOpen(true)}
+                      className="text-center text-blue-600 text-xs font-bold mt-2 cursor-pointer hover:underline flex items-center justify-center gap-1"
+                    >
                       View All Offers <MdKeyboardArrowRight />
+                    </p>
+                    <p className="text-[10px] text-gray-400 text-center mt-2">
+                      Only one coupon can be applied at a time.
                     </p>
                   </div>
 
@@ -557,7 +665,8 @@ function CartDrawer() {
                       {recommendedProducts.map((rec) => (
                         <div
                           key={rec.id}
-                          className="min-w-35 border border-gray-100 rounded-lg p-2 flex flex-col gap-2 relative bg-white"
+                          className="min-w-[140px] border border-gray-100 rounded-lg p-2 flex flex-col gap-2 relative bg-white cursor-pointer hover:shadow-md transition-all"
+                          onClick={() => navigate(`/product/${rec._id}`)}
                         >
                           <img
                             src={
@@ -586,16 +695,21 @@ function CartDrawer() {
                               </span>
                             </div>
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 const v = rec.variants?.[0];
                                 if (v) {
                                   const s =
-                                    v.stock instanceof Map
-                                      ? Array.from(v.stock.keys())[0]
-                                      : v.stock
+                                    v.stock && typeof v.stock === "object"
                                       ? Object.keys(v.stock)[0]
                                       : "OneSize";
-                                  // addToCart(rec, v, s, 1); // This function is not defined in the provided context.
+                                  dispatch(
+                                    addItemToCart({
+                                      productId: rec._id,
+                                      size: s,
+                                      quantity: 1,
+                                    }),
+                                  );
                                 }
                               }}
                               className="w-full mt-2 border border-black text-black text-xs font-bold py-1 rounded hover:bg-black hover:text-white transition-colors"
@@ -859,6 +973,11 @@ function CartDrawer() {
           </div>
         )}
       </div>
+      <ViewAllOffers
+        isOpen={isOffersOpen}
+        onClose={() => setIsOffersOpen(false)}
+        currentCouponCode={cart?.couponCode}
+      />
     </div>
   );
 }

@@ -33,6 +33,15 @@ const cartSchema = new mongoose.Schema({
     required: true,
     default: 0,
   },
+  coupon: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "coupons",
+    default: null,
+  },
+  couponCode: {
+    type: String,
+    default: null,
+  },
 });
 
 const Cart = mongoose.model("cart", cartSchema);

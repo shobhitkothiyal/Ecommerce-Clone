@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 import paymentController from "../controller/payment.controller.js";
-import authenticate from "../middlewere/authenticate-temp.js";
+import authenticate from "../middlewere/authenticate.js";
 
 router.post("/create-order", authenticate, paymentController.createPaymentLink);
 router.post(

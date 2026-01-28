@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 import queryController from "../controller/query.controller.js";
-import authenticate from "../middlewere/authenticate-temp.js";
+import authenticate from "../middlewere/authenticate.js";
 
 // Public Route
 router.post("/", queryController.createQuery);
