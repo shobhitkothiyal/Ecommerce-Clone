@@ -109,15 +109,20 @@ const AddProductForm = ({ readOnly = false }) => {
               { size: "XXL", quantity: 0 },
             ];
           }
+          const isBlackWhite =
+            v.color.toLowerCase() === "black & white" ||
+            v.color.toLowerCase() === "black and white";
 
           return {
-            color: v.color || "",
-            hex: v.hex || "#000000",
-            basePrice: v.price || "",
-            files: [],
-            previews: v.images || [], // assuming v.images contains URLs
-            stock: stockArray,
+            color: v.color,
+            type: isBlackWhite ? "dual" : "solid",
+            colors: isBlackWhite ? ["#000000", "#ffffff"] : [],
+            hex: isBlackWhite ? null : v.hex,
+            price: Number(v.basePrice) || 0,
+            stock: stockMap,
+            images: existingImages,
           };
+
         });
         setVariants(mappedVariants);
       }
@@ -411,6 +416,17 @@ const AddProductForm = ({ readOnly = false }) => {
 
       // 3. Variants
       const variantsData = variants.map((v) => {
+
+        const colorsArray = v.color
+          .split(",")
+          .map((c) => c.trim())
+          .map((c) => {
+            // convert common color names to hex if hex not provided
+            if (c.toLowerCase() === "black") return "#000000";
+            if (c.toLowerCase() === "white") return "#FFFFFF";
+            return v.hex || c; // fallback to hex input
+          });
+
         // Convert stock array to Map-like object for backend
         const stockMap = {};
         v.stock.forEach((item) => {
@@ -426,6 +442,7 @@ const AddProductForm = ({ readOnly = false }) => {
 
         return {
           color: v.color,
+          colors: colorsArray,
           hex: v.hex,
           price: Number(v.basePrice) || 0,
           stock: stockMap,
@@ -742,7 +759,7 @@ const AddProductForm = ({ readOnly = false }) => {
                     onChange={(e) =>
                       handleVariantChange(vIndex, "color", e.target.value)
                     }
-                    placeholder="Red, Blue..."
+                    placeholder="Red, Blue, Black and White...."
                     className="w-full bg-black/50 border border-zinc-700 rounded px-3 py-2 disabled:opacity-50"
                     disabled={readOnly}
                     required
