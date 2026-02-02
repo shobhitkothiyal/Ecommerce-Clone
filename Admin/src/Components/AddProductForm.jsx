@@ -17,6 +17,13 @@ const AddProductForm = ({ readOnly = false }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [variantType, setVariantType] = useState("single");
+
+  const [singleHex, setSingleHex] = useState("#000000");
+
+  const [dualColor1, setDualColor1] = useState("#000000");
+  const [dualColor2, setDualColor2] = useState("#ffffff");
+
 
   // ... (maintain existing state: formData, variants)
 
@@ -41,7 +48,7 @@ const AddProductForm = ({ readOnly = false }) => {
   const [variants, setVariants] = useState([
     {
       color: "",
-      hex: "#000000",
+      colors: ["#000000", "#ffffff"],
       basePrice: "",
       files: [],
       previews: [],
@@ -67,13 +74,16 @@ const AddProductForm = ({ readOnly = false }) => {
         title: productToUpdate.title || "",
         brand: productToUpdate.brand || "",
         description: productToUpdate.description || "",
-        price: productToUpdate.variants?.[0]?.price || "",
-        discountedPrice: "", // Optional or derived
+        price: productToUpdate.price || "",
+        discountedPrice: productToUpdate.discountedPrice || "",
         discountPercentage: productToUpdate.discountedPercent || "",
         topLevelCategory: productToUpdate.topLevelCategory || "",
         secondLevelCategory: productToUpdate.secondLevelCategory || "",
         thirdLevelCategory:
-          productToUpdate.category?.name || productToUpdate.category || "",
+          productToUpdate.thirdLevelCategory ||
+          productToUpdate.category?.name ||
+          productToUpdate.category ||
+          "",
         details: Array.isArray(productToUpdate.details)
           ? productToUpdate.details.map((d) => ({
             key: d.key || "",
@@ -92,40 +102,37 @@ const AddProductForm = ({ readOnly = false }) => {
 
       if (productToUpdate.variants && productToUpdate.variants.length > 0) {
         const mappedVariants = productToUpdate.variants.map((v) => {
-          let stockArray = [];
-          if (v.stock && typeof v.stock === "object") {
-            stockArray = Object.entries(v.stock).map(([size, quantity]) => ({
-              size,
-              quantity,
-            }));
-          }
-          if (stockArray.length === 0) {
-            stockArray = [
-              { size: "XS", quantity: 0 },
-              { size: "S", quantity: 0 },
-              { size: "M", quantity: 0 },
-              { size: "L", quantity: 0 },
-              { size: "XL", quantity: 0 },
-              { size: "XXL", quantity: 0 },
-            ];
-          }
-          const isBlackWhite =
-            v.color.toLowerCase() === "black & white" ||
-            v.color.toLowerCase() === "black and white";
+          const stockArray = Object.entries(v.stock || {}).map(
+            ([size, quantity]) => ({ size, quantity })
+          );
 
           return {
-            color: v.color,
-            type: isBlackWhite ? "dual" : "solid",
-            colors: isBlackWhite ? ["#000000", "#ffffff"] : [],
-            hex: isBlackWhite ? null : v.hex,
-            price: Number(v.basePrice) || 0,
-            stock: stockMap,
-            images: existingImages,
+            color: v.color || "",
+            hex: v.hex || "#000000",
+            colors:
+              Array.isArray(v.colors) && v.colors.length === 2
+                ? v.colors
+                : [],
+            basePrice: v.price || "",
+            files: [],
+            previews: v.images || [],
+            stock:
+              stockArray.length > 0
+                ? stockArray
+                : [
+                  { size: "XS", quantity: 0 },
+                  { size: "S", quantity: 0 },
+                  { size: "M", quantity: 0 },
+                  { size: "L", quantity: 0 },
+                  { size: "XL", quantity: 0 },
+                  { size: "XXL", quantity: 0 },
+                ],
           };
-
         });
+
         setVariants(mappedVariants);
       }
+
     }
   }, [productToUpdate]);
 
@@ -159,6 +166,7 @@ const AddProductForm = ({ readOnly = false }) => {
       {
         color: "",
         hex: "#000000",
+        colors: ["#000000", "#ffffff"],
         basePrice: formData.discountedPrice || "", // Default to main price
         files: [],
         previews: [],
@@ -417,15 +425,10 @@ const AddProductForm = ({ readOnly = false }) => {
       // 3. Variants
       const variantsData = variants.map((v) => {
 
-        const colorsArray = v.color
-          .split(",")
-          .map((c) => c.trim())
-          .map((c) => {
-            // convert common color names to hex if hex not provided
-            if (c.toLowerCase() === "black") return "#000000";
-            if (c.toLowerCase() === "white") return "#FFFFFF";
-            return v.hex || c; // fallback to hex input
-          });
+        const colorsArray =
+          Array.isArray(v.colors) && v.colors.length > 0
+            ? v.colors
+            : (v.hex ? [v.hex] : ["#000000"]);
 
         // Convert stock array to Map-like object for backend
         const stockMap = {};
@@ -443,7 +446,7 @@ const AddProductForm = ({ readOnly = false }) => {
         return {
           color: v.color,
           colors: colorsArray,
-          hex: v.hex,
+          hex: v.hex || "",
           price: Number(v.basePrice) || 0,
           stock: stockMap,
           images: existingImages, // Send existing images to backend
@@ -487,7 +490,7 @@ const AddProductForm = ({ readOnly = false }) => {
         setVariants([
           {
             color: "",
-            hex: "#000000",
+            colors: ["#000000"],
             basePrice: "",
             files: [],
             previews: [],
@@ -518,7 +521,15 @@ const AddProductForm = ({ readOnly = false }) => {
       });
     }
   };
-
+  // Color Handler  
+  const [colors, setColors] = useState([
+    { primary: "", secondary: "" }
+  ]);
+  const handleColorChange = (index, field, value) => {
+    const updated = [...colors];
+    updated[index][field] = value;
+    setColors(updated);
+  };
   return (
     <div className="max-w-7xl mx-auto p-6 bg-zinc-950 min-h-screen text-gray-200">
       <h1 className="text-3xl font-bold mb-8 text-white">
@@ -767,28 +778,73 @@ const AddProductForm = ({ readOnly = false }) => {
                 </div>
                 <div>
                   <label className="block text-sm mb-1 text-gray-400">
-                    Hex Code
+                    Color Type
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={variant.hex}
-                      onChange={(e) =>
-                        handleVariantChange(vIndex, "hex", e.target.value)
+
+                  <select
+                    value={
+                      Array.isArray(variant.colors) && variant.colors.length === 2
+                        ? "dual"
+                        : "single"
+                    }
+                    onChange={(e) => {
+                      const updated = [...variants];
+
+                      if (e.target.value === "dual") {
+                        // switch to dual color
+                        updated[vIndex].colors = ["#000000", "#ffffff"];
+                        updated[vIndex].hex = ""; // IMPORTANT
+                      } else {
+                        // switch to single color
+                        updated[vIndex].hex = "#000000";
+                        updated[vIndex].colors = []; // IMPORTANT
                       }
-                      className="h-10 w-14 bg-transparent cursor-pointer rounded overflow-hidden disabled:opacity-50"
-                      disabled={readOnly}
-                    />
-                    <input
-                      value={variant.hex}
-                      onChange={(e) =>
-                        handleVariantChange(vIndex, "hex", e.target.value)
-                      }
-                      className="w-full bg-black/50 border border-zinc-700 rounded px-3 py-2 uppercase disabled:opacity-50"
-                      disabled={readOnly}
-                    />
+
+                      setVariants(updated);
+                    }}
+                    className="w-full bg-black/50 border border-zinc-700 rounded px-3 py-2"
+                    disabled={readOnly}
+                  >
+                    <option value="single">Single Color</option>
+                    <option value="dual">Dual Color</option>
+                  </select>
+
+                  {/* COLOR PICKERS */}
+                  <div className="flex gap-3 mt-3">
+                    {Array.isArray(variant.colors) && variant.colors.length === 2 ? (
+                      // DUAL COLOR PICKERS
+                      variant.colors.map((c, i) => (
+                        <input
+                          key={i}
+                          type="color"
+                          value={c}
+                          onChange={(e) => {
+                            const updated = [...variants];
+                            updated[vIndex].colors[i] = e.target.value;
+                            setVariants(updated);
+                          }}
+                          className="h-10 w-14 cursor-pointer rounded border border-zinc-600"
+                          disabled={readOnly}
+                        />
+                      ))
+                    ) : (
+                      // SINGLE COLOR PICKER
+                      <input
+                        type="color"
+                        value={variant.hex || "#000000"}
+                        onChange={(e) => {
+                          const updated = [...variants];
+                          updated[vIndex].hex = e.target.value;
+                          setVariants(updated);
+                        }}
+                        className="h-10 w-14 cursor-pointer rounded border border-zinc-600"
+                        disabled={readOnly}
+                      />
+                    )}
                   </div>
                 </div>
+
+
                 <div>
                   <label className="block text-sm mb-1 text-gray-400">
                     Variant Price (Optional)

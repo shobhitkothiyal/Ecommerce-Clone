@@ -101,9 +101,9 @@ const RecentOrders = ({ orders = [] }) => {
               orders.slice(0, 10).map((order, index) => {
                 const item = getFirstProduct(order);
                 const imageSrc =
-                  (item?.imageUrl && item.imageUrl[0]) ||
-                  item?.image ||
-                  "/default-product.png";
+                  (Array.isArray(item?.images) && item.images.length > 0)
+                    ? item.images[0]
+                    : (item?.variants?.[0]?.images?.[0] || item?.imageUrl?.[0] || item?.image || "/default-product.png");
                 const title =
                   item?.title ||
                   order?.orderItems?.[0]?.name ||
@@ -119,8 +119,8 @@ const RecentOrders = ({ orders = [] }) => {
                   status === "DELIVERED"
                     ? "success"
                     : status === "CANCELLED"
-                    ? "error"
-                    : "warning";
+                      ? "error"
+                      : "warning";
 
                 return (
                   <TableRow
@@ -138,7 +138,8 @@ const RecentOrders = ({ orders = [] }) => {
                       <Avatar
                         alt={title}
                         src={imageSrc}
-                        sx={{ width: 46, height: 46 }}
+                        variant="rounded"
+                        sx={{ width: 50, height: 50, border: "1px solid #3f3f46" }}
                       />
                     </TableCell>
 

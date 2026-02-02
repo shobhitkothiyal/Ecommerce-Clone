@@ -442,8 +442,19 @@ const ProductsTable = () => {
                     <TableCell>
                       <Avatar
                         alt={item.title}
-                        src={item.imageUrl?.[0] || item.images?.[0]}
+                        src={
+                          (Array.isArray(item.images) && item.images.length > 0)
+                            ? item.images[0]
+                            : (item.variants?.[0]?.images?.[0] || (typeof item.images === 'string' ? item.images : (item.imageUrl?.[0] || item.imageUrl)))
+                        }
                         variant="rounded"
+                        sx={{
+                          width: 65,
+                          height: 65,
+                          border: "1px solid #3f3f46",
+                          bgcolor: "#27272a",
+                          "& img": { objectFit: "cover" }
+                        }}
                       />
                     </TableCell>
 
@@ -492,9 +503,9 @@ const ProductsTable = () => {
                     >
                       {item.variants?.[0]?.price && item.discountedPercent > 0
                         ? `₹${Math.round(
-                            item.variants[0].price *
-                              (1 - item.discountedPercent / 100)
-                          )}`
+                          item.variants[0].price *
+                          (1 - item.discountedPercent / 100)
+                        )}`
                         : "-"}
                     </TableCell>
                     <TableCell sx={{ textAlign: "center", color: "white" }}>
@@ -554,7 +565,7 @@ const ProductsTable = () => {
                     <TableCell
                       sx={{
                         textAlign: "center",
-                        
+
                       }}
 
                     >

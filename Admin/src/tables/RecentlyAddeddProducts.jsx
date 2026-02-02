@@ -97,7 +97,13 @@ const RecentlyAddeddProducts = ({ products = [] }) => {
                 <TableCell>
                   <Avatar
                     alt={item.title}
-                    src={item.imageUrl || item.image || "/default-product.png"}
+                    src={
+                      (Array.isArray(item.images) && item.images.length > 0)
+                        ? item.images[0]
+                        : (item.variants?.[0]?.images?.[0] || item.imageUrl?.[0] || item.image || "/default-product.png")
+                    }
+                    variant="rounded"
+                    sx={{ width: 50, height: 50, border: "1px solid #3f3f46" }}
                   />
                 </TableCell>
 

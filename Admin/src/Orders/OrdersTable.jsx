@@ -344,17 +344,22 @@ const OrdersTable = () => {
                     {/* Image wrapper */}
                     <div
                       style={{
-                        width: "40px",
-                        height: "40px",
+                        width: "50px",
+                        height: "50px",
                         overflow: "hidden",
                         borderRadius: "6px",
                         flexShrink: 0,
                         backgroundColor: "#333",
+                        border: "1px solid #444"
                       }}
                     >
                       <img
-                        src={item.product.imageUrl?.[0]}
-                        alt={item.product.title}
+                        src={
+                          (Array.isArray(item.product?.images) && item.product?.images.length > 0)
+                            ? item.product?.images[0]
+                            : (item.product?.variants?.[0]?.images?.[0] || item.product?.imageUrl?.[0] || item.product?.imageUrl)
+                        }
+                        alt={item.product?.title}
                         style={{
                           width: "100%",
                           height: "100%",
@@ -889,7 +894,12 @@ const OrdersTable = () => {
                           <Avatar
                             key={idx}
                             alt={orderItem.product?.title}
-                            src={orderItem.product?.imageUrl?.[0]}
+                            src={
+                              (Array.isArray(orderItem.product?.images) && orderItem.product?.images.length > 0)
+                                ? orderItem.product?.images[0]
+                                : (orderItem.product?.variants?.[0]?.images?.[0] || orderItem.product?.imageUrl?.[0] || orderItem.product?.imageUrl)
+                            }
+                            sx={{ width: 40, height: 40, border: "1px solid #3f3f46" }}
                           />
                         ))}
                       </AvatarGroup>
@@ -972,20 +982,20 @@ const OrdersTable = () => {
                           item.orderStatus === "PENDING"
                             ? "info"
                             : item.orderStatus === "CONFIRMED"
-                            ? "warning"
-                            : item.orderStatus === "SHIPPED"
-                            ? "primary"
-                            : item.orderStatus === "OUT_FOR_DELIVERY"
-                            ? "secondary"
-                            : item.orderStatus === "DELIVERED"
-                            ? "success"
-                            : item.orderStatus === "RETURNED"
-                            ? "success"
-                            : item.orderStatus === "RETURNED_REQUESTED"
-                            ? "warning"
-                            : item.orderStatus === "CANCELLED"
-                            ? "error"
-                            : "default"
+                              ? "warning"
+                              : item.orderStatus === "SHIPPED"
+                                ? "primary"
+                                : item.orderStatus === "OUT_FOR_DELIVERY"
+                                  ? "secondary"
+                                  : item.orderStatus === "DELIVERED"
+                                    ? "success"
+                                    : item.orderStatus === "RETURNED"
+                                      ? "success"
+                                      : item.orderStatus === "RETURNED_REQUESTED"
+                                        ? "warning"
+                                        : item.orderStatus === "CANCELLED"
+                                          ? "error"
+                                          : "default"
                         }
                       />
                     </TableCell>
