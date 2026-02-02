@@ -7,7 +7,7 @@ import { couponReducer } from "./Customers/Coupon/Reducer.js";
 import { reviewReducer } from "./Customers/Review/Reducer.js";
 import { cartReducer} from "./Customers/Cart/Reducer.js"
 
-const rootReducer = combineReducers({
+export const rootReducer = combineReducers({
   auth: authReducer,
   product: customerProductReducer,
   cart: cartReducer,

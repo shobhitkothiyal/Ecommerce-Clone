@@ -12,6 +12,9 @@ import {
   UPDATE_CART_ITEM_FAILURE,
   UPDATE_CART_ITEM_REQUEST,
   UPDATE_CART_ITEM_SUCCESS,
+  CLEAR_CART_REQUEST,
+  CLEAR_CART_SUCCESS,
+  CLEAR_CART_FAILURE,
 } from "./ActionType";
 
 const API_BASE_URL =
@@ -121,16 +124,16 @@ export const removeCoupon = () => async (dispatch) => {
 };
 
 export const clearCartAction = () => async (dispatch) => {
-  dispatch({ type: "CLEAR_CART_REQUEST" });
+  dispatch({ type: CLEAR_CART_REQUEST });
   try {
     const token = localStorage.getItem("jwt");
     const { data } = await axios.delete(`${API_BASE_URL}/cart`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    dispatch({ type: "CLEAR_CART_SUCCESS", payload: data });
+    dispatch({ type: CLEAR_CART_SUCCESS, payload: data });
   } catch (error) {
     dispatch({
-      type: "CLEAR_CART_FAILURE",
+      type: CLEAR_CART_FAILURE,
       payload:
         error.response && error.response.data.message
           ? error.response.data.message

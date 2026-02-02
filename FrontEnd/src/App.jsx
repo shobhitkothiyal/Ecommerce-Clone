@@ -31,6 +31,7 @@ import OrderSuccess from "./Order/OrderSuccess";
 import { useDispatch, useSelector } from "react-redux"; // Import hooks
 import { useEffect } from "react";
 import { getUser } from "./Redux/Auth/actions.js";
+import { getCart } from "./Redux/Customers/Cart/Action";
 
 function App() {
   const dispatch = useDispatch();
@@ -39,6 +40,7 @@ function App() {
   useEffect(() => {
     if (token) {
       dispatch(getUser(token));
+      dispatch(getCart());
     }
   }, [dispatch, token]);
 
@@ -71,7 +73,6 @@ function App() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:id" element={<BlogDetails />} />
         <Route path="/careers" element={<Careers />} />
-        <Route path="/orders" element={<OrderHistory />} />
         <Route path="/orders" element={<OrderHistory />} />
         <Route path="/account/order/:orderId" element={<OrderDetails />} />
         <Route path="/order-success/:orderId" element={<OrderSuccess />} />

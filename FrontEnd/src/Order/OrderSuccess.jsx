@@ -56,11 +56,10 @@ const OrderSuccess = () => {
               <div key={index} className="flex flex-col items-center">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 bg-white transition-colors duration-300
-                            ${
-                              index <= activeStep
-                                ? "border-green-500 text-green-500"
-                                : "border-gray-300 text-gray-400"
-                            }
+                            ${index <= activeStep
+                      ? "border-green-500 text-green-500"
+                      : "border-gray-300 text-gray-400"
+                    }
                             `}
                 >
                   {index <= activeStep ? (
@@ -70,9 +69,8 @@ const OrderSuccess = () => {
                   )}
                 </div>
                 <p
-                  className={`mt-2 text-xs md:text-sm font-medium ${
-                    index <= activeStep ? "text-black" : "text-gray-400"
-                  }`}
+                  className={`mt-2 text-xs md:text-sm font-medium ${index <= activeStep ? "text-black" : "text-gray-400"
+                    }`}
                 >
                   {step.label}
                 </p>
@@ -91,11 +89,15 @@ const OrderSuccess = () => {
                 key={item._id}
                 className="flex gap-4 border-b border-gray-100 pb-4 last:border-0 last:pb-0"
               >
-                <div className="w-20 h-24 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                <div className="w-20 h-24 bg-gray-100 rounded-lg overflow-hidden shrink-0 shadow-inner">
                   <img
-                    src={item.product?.variants?.[0]?.images?.[0] || ""}
+                    src={
+                      item.variant?.images?.[0] ||
+                      item.product?.variants?.[0]?.images?.[0] ||
+                      ""
+                    }
                     alt={item.product?.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform hover:scale-110 duration-500"
                   />
                 </div>
                 <div className="flex-1">

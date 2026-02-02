@@ -73,10 +73,16 @@ function ProductDetails() {
   const recommendedSwiperRef = useRef(null);
   const { setIsCartOpen } = useCart(); // Keep for opening drawer
   const [isCopied, setIsCopied] = useState(false);
+  const [isNotifyModalOpen, setIsNotifyModalOpen] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState("");
+  const [isNotifying, setIsNotifying] = useState(false);
+  const [notifyStatus, setNotifyStatus] = useState({ type: "", message: "" });
+  const [quantityError, setQuantityError] = useState("");
 
   const dispatch = useDispatch();
   const { product, products, loading } = useSelector((store) => store.product);
   const { user } = useSelector((store) => store.auth);
+  const { cartItems } = useSelector((store) => store.cart);
 
   const isWishlisted =
     user &&
@@ -95,42 +101,45 @@ function ProductDetails() {
 
   useEffect(() => {
     if (product) {
-      // Fetch recommendations or verify current product structure
-      if (product.variants && product.variants.length > 0) {
-        const defaultVariant = product.variants[0];
-        setSelectedVariant(defaultVariant);
-        setSelectedImage(defaultVariant.images[0]);
-        // Set default size if available in stock
-        // Check if stock is map or object
-        const stockData = defaultVariant.stock;
-        const sizes =
-          stockData instanceof Map
+      // Only set initial variant if navigating to a NEW product or first load
+      const isNewProduct = selectedVariant?.productId !== product._id;
+
+      if (isNewProduct) {
+        if (product.variants && product.variants.length > 0) {
+          const defaultVariant = product.variants[0];
+          setSelectedVariant({ ...defaultVariant, productId: product._id });
+          setSelectedImage(defaultVariant.images[0]);
+
+          const stockData = defaultVariant.stock;
+          const sizes = stockData instanceof Map
             ? Array.from(stockData.keys())
             : Object.keys(stockData || {});
 
-        const firstAvailableSize = sizes.find((size) => {
-          const qty =
-            stockData instanceof Map
+          const firstAvailableSize = sizes.find((size) => {
+            const qty = stockData instanceof Map
               ? Number(stockData.get(size))
               : Number(stockData?.[size]);
-          return qty > 0;
-        });
+            return qty > 0;
+          });
 
-        if (firstAvailableSize) {
-          setSelectedSize(firstAvailableSize);
-        } else if (sizes.length > 0) {
-          setSelectedSize(sizes[0]);
+          if (firstAvailableSize) {
+            setSelectedSize(firstAvailableSize);
+          } else if (sizes.length > 0) {
+            setSelectedSize(sizes[0]);
+          }
         }
       }
 
       // Fetch similar products for recommendations
       dispatch(findProducts({ category: product.category }));
     }
-  }, [product, dispatch]);
+  }, [product, dispatch]); // Keep product as dependency but guard inside
 
   const handleColorChange = (variant) => {
-    setSelectedVariant(variant);
+    setSelectedVariant({ ...variant, productId: product._id });
     setSelectedImage(variant.images[0]);
+    setQuantity(1);
+    setQuantityError("");
     const stockData = variant.stock;
     const sizes =
       stockData instanceof Map
@@ -152,6 +161,20 @@ function ProductDetails() {
     }
   };
 
+  const currentAvailableStock = (() => {
+    const stockData = selectedVariant?.stock;
+    return stockData instanceof Map
+      ? Number(stockData.get(selectedSize))
+      : Number(stockData?.[selectedSize] ?? 0);
+  })();
+
+  const quantityInCart = (cartItems || []).find(
+    (item) =>
+      item.product?._id === (product?._id || product?.id) &&
+      item.size === selectedSize &&
+      (item.variant?.color === selectedVariant.color || item.color === selectedVariant.color)
+  )?.quantity || 0;
+
   if (!product || !selectedVariant) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -165,11 +188,22 @@ function ProductDetails() {
   };
 
   const handleDecreaseQuantity = () => {
+    setQuantityError("");
     if (quantity > 1) setQuantity(quantity - 1);
   };
 
   const handleIncreaseQuantity = () => {
-    setQuantity(quantity + 1);
+    const remainingStock = currentAvailableStock - quantityInCart;
+    if (quantity < remainingStock) {
+      setQuantity(quantity + 1);
+      setQuantityError("");
+    } else {
+      if (quantityInCart > 0) {
+        setQuantityError("The maximum Quantity of this item is already placed in your cart");
+      } else {
+        setQuantityError(`Oops! We only have ${currentAvailableStock} units available for this size. 😔`);
+      }
+    }
   };
 
   const handleShare = async () => {
@@ -187,6 +221,39 @@ function ProductDetails() {
       }
     } catch (error) {
       console.error("Error sharing:", error);
+    }
+  };
+
+  const handleNotifySubmit = async (e) => {
+    e.preventDefault();
+    if (!notifyEmail) return;
+
+    setIsNotifying(true);
+    setNotifyStatus({ type: "", message: "" });
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:8000/api"}/stock-notifications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product._id || product.id,
+          color: selectedVariant.color,
+          size: selectedSize,
+          email: notifyEmail,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setNotifyStatus({ type: "success", message: "Success! You've followed this item 🎉" });
+      } else {
+        setNotifyStatus({ type: "error", message: data.error || "Something went wrong." });
+      }
+    } catch (error) {
+      setNotifyStatus({ type: "error", message: "Network error. Please try again." });
+    } finally {
+      setIsNotifying(false);
     }
   };
 
@@ -363,45 +430,45 @@ function ProductDetails() {
 
           {/* Right Side - Product Details */}
           <div className="flex flex-col">
-  <div className="flex justify-between items-start">
-    <h1 className="text-3xl font-normal text-gray-900 mb-2">
-      {product.title}
-    </h1>
-    <div className="relative flex gap-2">
-      {/* Button container with group */}
-      <button
-        onClick={() => {
-          if (user) {
-            if (isWishlisted) {
-              dispatch(removeItemFromWishlist(product._id));
-            } else {
-              dispatch(addItemToWishlist(product._id));
-            }
-          } else {
-            navigate("/login");
-          }
-        }}
-        className={`group relative p-2 rounded-full border border-gray-200 transition-colors
+            <div className="flex justify-between items-start">
+              <h1 className="text-3xl font-normal text-gray-900 mb-2">
+                {product.title}
+              </h1>
+              <div className="relative flex gap-2">
+                {/* Button container with group */}
+                <button
+                  onClick={() => {
+                    if (user) {
+                      if (isWishlisted) {
+                        dispatch(removeItemFromWishlist(product._id));
+                      } else {
+                        dispatch(addItemToWishlist(product._id));
+                      }
+                    } else {
+                      navigate("/login");
+                    }
+                  }}
+                  className={`group relative p-2 rounded-full border border-gray-200 transition-colors
           ${isWishlisted ? "bg-black text-white" : "text-gray-600 hover:bg-black hover:text-white"}
         `}
-      >
-        <FiStar
-          size={20}
-          fill={isWishlisted ? "currentColor" : "none"}
-          className="transition-colors duration-300"
-        />
+                >
+                  <FiStar
+                    size={20}
+                    fill={isWishlisted ? "currentColor" : "none"}
+                    className="transition-colors duration-300"
+                  />
 
-        {/* Tooltip sliding from left */}
-        <span className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-3 py-1 bg-black text-white text-sm rounded-md whitespace-nowrap 
+                  {/* Tooltip sliding from left */}
+                  <span className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-3 py-1 bg-black text-white text-sm rounded-md whitespace-nowrap 
                          opacity-0 translate-x-[-10px] group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300 ease-out z-50">
-          {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+                    {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
 
-          {/* Triangle pointer */}
-          <span className="absolute right-[-4px] top-1/2 -translate-y-1/2 w-2 h-2 bg-black rotate-45"></span>
-        </span>
-      </button>
-    </div>
-  </div>
+                    {/* Triangle pointer */}
+                    <span className="absolute right-[-4px] top-1/2 -translate-y-1/2 w-2 h-2 bg-black rotate-45"></span>
+                  </span>
+                </button>
+              </div>
+            </div>
 
             {/* Average Rating & Share Row */}
             <div className="flex items-center justify-between mb-6">
@@ -488,10 +555,15 @@ function ProductDetails() {
                     return (
                       <div key={size} className="relative group">
                         <button
-                          onClick={() => stockQty > 0 && setSelectedSize(size)}
-                          disabled={stockQty <= 0}
+                          onClick={() => {
+                            setSelectedSize(size);
+                            setQuantity(1);
+                            setQuantityError("");
+                          }}
                           className={`min-w-14 h-14 flex items-center justify-center border rounded-full font-medium transition-all duration-200 relative overflow-hidden ${stockQty <= 0
-                            ? "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
+                            ? selectedSize === size
+                              ? "border-zinc-600 bg-zinc-600 text-zinc-100"
+                              : "border-gray-100 bg-gray-50 text-gray-300"
                             : selectedSize === size
                               ? "border-black bg-black text-white"
                               : "border-gray-200 hover:border-black text-gray-900"
@@ -499,8 +571,9 @@ function ProductDetails() {
                         >
                           {size}
                           {stockQty <= 0 && (
-                            <div className="absolute inset-0 flex justify-center items-center">
-                              <div className="w-full h-px bg-gray-300 rotate-45 transform origin-center scale-110"></div>
+                            <div className="absolute inset-0 flex justify-center items-center pointer-events-none">
+                              <div className={`w-full h-px rotate-45 transform origin-center scale-110 ${selectedSize === size ? "bg-zinc-300" : "bg-gray-300"
+                                }`}></div>
                             </div>
                           )}
                         </button>
@@ -518,89 +591,230 @@ function ProductDetails() {
             {/* Colors */}
             <div className="mb-8">
               <p className="font-semibold mb-3 tracking-wide">
-                Color:{" "}
-                <span className="font-normal">{selectedVariant.color}</span>
+                Color: <span className="font-normal">{selectedVariant.color}</span>
               </p>
+
               <div className="flex gap-4 items-center">
-                {product.variants.map((variant) => (
-                  <div key={variant.color} className="relative group/swatch">
-                    <button
-                      onClick={() => handleColorChange(variant)}
-                      className={`w-9.5 h-9.5 rounded-full border border-gray-200 transition-all duration-300 ${selectedVariant.color === variant.color
-                        ? "ring-2 ring-black ring-offset-1"
-                        : "ring-1 ring-transparent hover:ring-black hover:ring-offset-1"
-                        }`}
-                      style={
-                        variant.type === "dual"
-                          ? {
-                            backgroundImage: `linear-gradient(
-          135deg,
-          ${(variant.colors && variant.colors[0]) || "#000000"} 50%,
-          ${(variant.colors && variant.colors[1]) || "#ffffff"} 50%
-        )`,
-                          }
-                          : {
-                            backgroundColor: variant.hex,
-                          }
-                      }
+                {product.variants.map((variant, index) => {
+                  const isDual =
+                    Array.isArray(variant.colors) && variant.colors.length === 2;
 
+                  return (
+                    <div key={index} className="relative group">
+                      <button
+                        onClick={() => handleColorChange(variant)}
+                        className={`w-9 h-9 rounded-full border relative overflow-hidden transition-all duration-400
+              ${selectedVariant === variant
+                            ? "ring-1 ring-black ring-offset-1 shadow-md"
+                            : "hover:ring-1 hover:ring-black hover:ring-offset-1 hover:shadow-[0_15px_35px_-5px_rgba(0,0,0,0.45)] hover:scale-110"
+                          }`}
+                      >
+                        {isDual ? (
+                          <>
+                            {/* RIGHT COLOR (Background) */}
+                            <span
+                              className="absolute inset-0"
+                              style={{ backgroundColor: variant.colors[1] }}
+                            />
+                            {/* LEFT COLOR (Curved Overlay) */}
+                            <span
+                              className="absolute inset-0"
+                              style={{
+                                backgroundColor: variant.colors[0],
+                                clipPath: "ellipse(95% 70% at 0% 0%)",
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <span
+                            className="absolute inset-0"
+                            style={{ backgroundColor: variant.hex || variant.colors?.[0] || "#ffffff" }}
+                          />
+                        )}
+                      </button>
 
-                    ></button>
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-2 py-1 bg-black text-white text-[10px] rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 w-auto shadow-xl">
-                      {variant.color}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-black"></div>
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-2 py-1 bg-black text-white text-[10px] rounded
+            opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-xl">
+                        {variant.color}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-black"></div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+              {quantityError && (
+                <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl animate-fade-in flex items-center gap-3">
+                  <span className="text-xl">⚠️</span>
+                  <p className="text-sm md:text-base font-bold tracking-tight">
+                    {quantityError}
+                  </p>
+                </div>
+              )}
             </div>
+
 
             {/* Quantity & Add to Cart */}
             <div className="mb-8">
               <p className="font-semibold mb-3 tracking-wide">Quantity</p>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="flex items-center border border-gray-300">
-                  <button
-                    onClick={handleDecreaseQuantity}
-                    className="px-4 py-3 hover:bg-gray-50 transition-colors"
-                  >
-                    <FiMinus size={16} />
-                  </button>
-                  <span className="px-4 py-3 min-w-12 text-center font-medium">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={handleIncreaseQuantity}
-                    className="px-4 py-3 hover:bg-gray-50 transition-colors"
-                  >
-                    <FiPlus size={16} />
-                  </button>
-                </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 items-center flex-1">
-                  <button
-                    onClick={() => {
-                      if (user) {
-                        const data = {
-                          productId: product?._id,
-                          size: selectedSize,
-                          quantity: quantity,
-                          variant: selectedVariant,
-                        };
-                        dispatch(addItemToCart(data));
-                        setIsCartOpen(true);
-                      } else {
-                        navigate("/login");
-                      }
-                    }}
-                    className="w-full px-8 py-4 bg-black text-white text-sm font-bold tracking-wide hover:bg-gray-800 transition-colors uppercase"
-                  >
-                    ADD TO BAG
-                  </button>
-                </div>
-              </div>
+              {(() => {
+                const stockData = selectedVariant?.stock;
+                const stockQty = stockData instanceof Map
+                  ? Number(stockData.get(selectedSize))
+                  : Number(stockData?.[selectedSize] ?? 0);
+                const isSoldOut = selectedSize && stockQty <= 0;
+
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-stretch gap-4">
+                      {/* Quantity Control */}
+                      <div className="flex items-stretch rounded border border-gray-300 h-[54px] bg-white shrink-0">
+                        <button
+                          onClick={handleDecreaseQuantity}
+                          className="px-5 hover:bg-zinc-50 transition-colors flex items-center justify-center"
+                          disabled={isSoldOut}
+                        >
+                          <FiMinus size={16} className={isSoldOut ? "text-gray-300" : "text-black"} />
+                        </button>
+                        <div className={`px-4 min-w-[50px] flex items-center justify-center font-bold text-base ${isSoldOut ? "text-gray-300" : "text-black"}`}>
+                          {quantity}
+                        </div>
+                        <button
+                          onClick={handleIncreaseQuantity}
+                          className="px-5 hover:bg-zinc-50 transition-colors flex items-center justify-center"
+                          disabled={isSoldOut}
+                        >
+                          <FiPlus size={16} className={isSoldOut ? "text-gray-300" : "text-black"} />
+                        </button>
+                      </div>
+
+                      {/* Main Action Button */}
+                      <div className="flex-1">
+                        <button
+                          onClick={() => {
+                            if (isSoldOut) return;
+                            if (user) {
+                              const data = {
+                                productId: product?._id,
+                                size: selectedSize,
+                                quantity: Math.min(quantity, currentAvailableStock - quantityInCart),
+                                variant: selectedVariant,
+                              };
+                              dispatch(addItemToCart(data));
+                              setQuantity(1);
+                              setIsCartOpen(true);
+                            } else {
+                              navigate("/login");
+                            }
+                          }}
+
+                          disabled={isSoldOut}
+                          className={`w-full h-full px-8 py-4 text-sm font-bold tracking-widest transition-all duration-300 uppercase ${isSoldOut
+                            ? "bg-[#333333] text-[#cfcfcf]" // Dark gray as per image
+                            : "bg-black text-white hover:bg-gray-800 active:scale-[0.98]"
+                            }`}
+                        >
+                          {isSoldOut ? "SOLD OUT" : "ADD TO BAG"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Notify Me Button - Only appears when sold out */}
+                    {isSoldOut && (
+                      <button
+                        onClick={() => setIsNotifyModalOpen(true)}
+                        className="w-full bg-black text-white py-4 text-sm font-black tracking-[3px] uppercase hover:bg-zinc-900 transition-all active:scale-[0.99] shadow-lg"
+                      >
+                        NOTIFY ME
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
+
+            {/* Notify Me Modal */}
+            {isNotifyModalOpen &&
+              createPortal(
+                <div className="fixed inset-0 z-9999 bg-black/60 backdrop-blur-sm flex justify-center items-center p-4">
+                  <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl relative p-8 animate-fade-in">
+                    {/* Close Button */}
+                    <button
+                      onClick={() => setIsNotifyModalOpen(false)}
+                      className="absolute top-4 right-4 text-gray-400 hover:text-black transition-colors"
+                    >
+                      <FiX size={24} />
+                    </button>
+
+                    {/* Content */}
+                    {notifyStatus.type === "success" ? (
+                      <div className="text-center animate-fade-in">
+                        <div className="mb-6 relative h-48 flex justify-center items-center">
+                          <img
+                            src="/notify-success.png"
+                            alt="Success Illustration"
+                            className="max-h-full object-contain"
+                          />
+                        </div>
+                        <h2 className="text-xl font-bold mb-8 text-black">
+                          {notifyStatus.message}
+                        </h2>
+                        <button
+                          onClick={() => {
+                            setIsNotifyModalOpen(false);
+                            setNotifyEmail("");
+                            setNotifyStatus({ type: "", message: "" });
+                          }}
+                          className="w-full bg-[#2d8a63] hover:bg-[#256e4f] text-white font-bold py-4 rounded-3xl transition-all active:scale-[0.98] uppercase tracking-wider"
+                        >
+                          Confirm
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-center mb-8">
+                          <h2 className="text-2xl font-black tracking-tight mb-2 uppercase">Notify When Available</h2>
+                          <p className="text-gray-500 text-sm">Sign up with your email and we'll notify you!</p>
+                        </div>
+
+                        <form onSubmit={handleNotifySubmit} className="space-y-6">
+                          <div className="relative">
+                            <input
+                              type="email"
+                              required
+                              value={notifyEmail}
+                              onChange={(e) => setNotifyEmail(e.target.value)}
+                              placeholder="Enter your email here"
+                              className="w-full px-6 py-4 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all placeholder:text-gray-400"
+                            />
+                          </div>
+
+                          {notifyStatus.message && (
+                            <p className={`text-center text-sm font-medium ${notifyStatus.type === "success" ? "text-green-600" : "text-red-600"}`}>
+                              {notifyStatus.message}
+                            </p>
+                          )}
+
+                          <button
+                            type="submit"
+                            disabled={isNotifying}
+                            className="w-full bg-[#2d8a63] hover:bg-[#256e4f] text-white font-bold py-4 rounded-full transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                            style={{ backgroundColor: "#2d8a63" }} // Exact green from image
+                          >
+                            {isNotifying ? (
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              "NOTIFY ME"
+                            )}
+                          </button>
+                        </form>
+                      </>
+                    )}
+                  </div>
+                </div>,
+                document.body,
+              )}
 
             {/* Accordions */}
             <div className="border-t border-gray-200">
@@ -795,7 +1009,7 @@ function ProductDetails() {
             </div>
           </div>
         </div>
-      </div>
+      </div >
       <div className="max-w-7xl mx-auto px-1 sm:px-6 lg:px-8 py-8 animate-fade-in">
         <h2 className="text-2xl font-bold mb-6">You May Also Like</h2>
         <div className="relative group/rec">

@@ -102,17 +102,17 @@ function ProductCard({ product, onQuickView }) {
             </button>
 
             {/* Tooltip */}
-            <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3
-      opacity-0 translate-x-2
-      group-hover/tooltip:opacity-100 group-hover/tooltip:translate-x-0
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3
+      opacity-0 translate-y-2
+      group-hover/tooltip:opacity-100 group-hover/tooltip:translate-y-0
       transition-all duration-300 ease-out
-      pointer-events-none">
+      pointer-events-none z-30">
 
-              <div className="relative bg-black text-white text-xs px-3 py-1 rounded-md whitespace-nowrap">
+              <div className="relative bg-black text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap">
                 {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
 
                 {/* Tooltip Arrow */}
-                <span className="absolute top-1/2 -right-1 w-2 h-2 bg-black rotate-45 -translate-y-1/2"></span>
+                <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-[4px] border-transparent border-t-black"></span>
               </div>
             </div>
           </div>
@@ -138,15 +138,15 @@ function ProductCard({ product, onQuickView }) {
 
             {/* Tooltip */}
             {!isQuickViewLoading && (
-              <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3
-      opacity-0 translate-x-2
-      group-hover/tooltip:opacity-100 group-hover/tooltip:translate-x-0
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3
+      opacity-0 translate-y-2
+      group-hover/tooltip:opacity-100 group-hover/tooltip:translate-y-0
       transition-all duration-300 ease-out
-      pointer-events-none">
+      pointer-events-none z-30">
 
-                <div className="relative bg-black text-white text-xs px-3 py-1 rounded-md whitespace-nowrap">
+                <div className="relative bg-black text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap">
                   Quick View
-                  <span className="absolute top-1/2 -right-1 w-2 h-2 bg-black rotate-45 -translate-y-1/2"></span>
+                  <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-[4px] border-transparent border-t-black"></span>
                 </div>
               </div>
             )}
@@ -182,25 +182,52 @@ function ProductCard({ product, onQuickView }) {
           </span>
         </div>
 
-        {/* Color Swatches */}
+        {/* Color Section  */}
         <div className="flex items-center gap-2">
-          {product.variants?.map((variant, index) => (
-            <div key={index} className="relative group/swatch">
-              <div
-                className="w-7 h-7 rounded-full border border-gray-300 transition-all group-hover/swatch:ring-1 group-hover/swatch:ring-offset-1 group-hover/swatch:ring-black cursor-pointer"
-                style={{ backgroundColor: variant.hex }}
-              ></div>
-              {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-2 py-1 bg-black text-white text-[10px] rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 w-auto shadow-xl">
-                {variant.color}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-black"></div>
+          {product.variants?.map((variant, index) => {
+            const isDual =
+              Array.isArray(variant.colors) && variant.colors.length === 2;
+
+            return (
+              <div key={index} className="relative group/swatch">
+                <div className="relative w-7 h-7 rounded-full border border-gray-300 overflow-hidden transition-all duration-400 hover:ring-1 hover:ring-black hover:ring-offset-1 hover:shadow-[0_12px_25px_-5px_rgba(0,0,0,0.45)] hover:scale-115 cursor-pointer">
+                  {isDual ? (
+                    <>
+                      {/* RIGHT COLOR (Background) */}
+                      <span
+                        className="absolute inset-0"
+                        style={{ backgroundColor: variant.colors[1] }}
+                      />
+                      {/* LEFT COLOR (Curved Overlay) */}
+                      <span
+                        className="absolute inset-0"
+                        style={{
+                          backgroundColor: variant.colors[0],
+                          clipPath: "ellipse(95% 70% at 0% 0%)"
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <span
+                      className="absolute inset-0"
+                      style={{ backgroundColor: variant.hex || variant.colors?.[0] || "#ffffff" }}
+                    />
+                  )}
+                </div>
+
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-2 py-1 bg-black text-white text-[10px] rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-xl">
+                  {variant.color}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-black"></div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+
       </div>
     </div>
   );
 }
 
-export default ProductCard;
+export default ProductCard; 
