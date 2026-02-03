@@ -95,6 +95,7 @@ const updatePaymentInformation = async (req, res) => {
       order.paymentDetails.razorpayPaymentId = razorpay_payment_id;
       order.paymentDetails.razorpaySignature = razorpay_signature;
       order.paymentDetails.paymentStatus = "COMPLETED";
+      order.paymentDetails.paymentMethod = "Razorpay";
       order.orderStatus = "PLACED"; // Or keep PENDING until explicitly confirmed? logic says PLACED.
 
       await order.save();

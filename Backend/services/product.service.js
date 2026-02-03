@@ -228,14 +228,27 @@ async function getAllProducts(reqQuery) {
     query = query.find({ discountedPercent: { $gte: Number(minDiscount) } });
   }
 
-  // 6. Stock Filtering
-  if (stock === "in_stock") {
-    // Basic check: Ensure quantity > 0 (if top level has quantity) or variants exist
-    // Schema doesn't have top level quantity.
-    // We assume if it has variants, it's potentially in stock.
-    query = query.find({ variants: { $not: { $size: 0 } } });
-  } else if (stock === "out_of_stock") {
-    query = query.find({ variants: { $size: 0 } });
+  // 6. Stock Filtering (Refined for Mixed Type Variants)
+  if (stock) {
+    if (stock === "in_stock") {
+      // At least one variant has stock > 0
+      query = query.where({
+        $where: function() {
+          return this.variants && this.variants.some((v) => {
+            return v.stock && Object.values(v.stock).some((qty) => Number(qty) > 0);
+          });
+        }
+      });
+    } else if (stock === "out_of_stock") {
+      // ALL variants have stock <= 0
+      query = query.where({
+        $where: function() {
+          return !this.variants || this.variants.every((v) => {
+            return !v.stock || Object.values(v.stock).every((qty) => Number(qty) <= 0);
+          });
+        }
+      });
+    }
   }
 
   // 7. Sorting

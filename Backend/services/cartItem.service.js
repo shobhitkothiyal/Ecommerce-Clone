@@ -25,11 +25,77 @@ const updateCartItem = async (userId, cartItemId, cartItemData) => {
     }
 
     if (user._id.toString() === userId.toString()) {
-      // Calculate unit prices from existing state
-      const unitPrice = item.price / item.quantity;
-      const unitDiscountedPrice = item.discountedPrice / item.quantity;
+      // 1. Determine Target Size
+      const targetSize = cartItemData.size || item.size;
+      const targetQuantity = cartItemData.quantity || item.quantity;
 
-      item.quantity = cartItemData.quantity;
+      // 2. Determine Target Variant (Fresh from Product)
+      let targetVariant = null;
+      
+      // If updating variant, find it in product
+      if (cartItemData.variant) {
+        targetVariant = item.product.variants.find(
+          (v) => v._id.toString() === cartItemData.variant.toString()
+        );
+        if (!targetVariant) {
+          throw new Error("Variant not found");
+        }
+      } else {
+        // If not updating variant, find the current one in product to get fresh stock
+        // item.variant might be an object, check if it has _id
+        const currentVariantId = item.variant?._id || item.variant?.id; 
+        if (currentVariantId) {
+             targetVariant = item.product.variants.find(
+              (v) => v._id.toString() === currentVariantId.toString()
+            );
+        }
+        // Fallback if item.variant is not linked or structure is different, though usually it should differ.
+        if (!targetVariant && item.variant) {
+            // If we can't link back to a product variant (rare), use item.variant but warn it might be stale. 
+            // Better to rely on product having variants.
+             targetVariant = item.variant; 
+        }
+      }
+
+      // 3. Validate Stock
+      if (targetVariant) {
+        // stock is { Size: Quantity, ... }
+        const availableStock = targetVariant.stock?.[targetSize] || 0;
+        if (availableStock <= 0) {
+           throw new Error(`Size ${targetSize} is out of stock for this color`);
+        }
+        if (availableStock < targetQuantity) {
+            throw new Error(`Only ${availableStock} items left in size ${targetSize}`);
+        }
+        
+        // Update the item's variant reference to the fresh one
+        item.variant = targetVariant;
+      }
+
+      // 4. Update Size in Item
+      if (cartItemData.size) {
+        item.size = cartItemData.size;
+      }
+
+      // 5. Recalculate Prices
+      // Determine the base unit price (from fresh variant)
+      let unitPrice = item.price / item.quantity; // Default fallback
+      if (item.variant && item.variant.price) {
+        unitPrice = item.variant.price;
+      }
+
+      // Calculate unit discounted price
+      const discountPercent = item.product.discountedPercent || 0;
+      const unitDiscountedPrice = Math.round(
+        unitPrice - (unitPrice * discountPercent) / 100,
+      );
+
+      // 6. Handle Quantity Update
+      if (cartItemData.quantity) {
+        item.quantity = cartItemData.quantity;
+      }
+
+      // Final Price Calculation
       item.price = unitPrice * item.quantity;
       item.discountedPrice = unitDiscountedPrice * item.quantity;
 

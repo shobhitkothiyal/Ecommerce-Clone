@@ -61,6 +61,7 @@ const productSchema = new mongoose.Schema({
 
     // SINGLE COLOR
     hex: { type: String, default: "" },
+    manuallyOutOfStock: { type: Boolean, default: false },
 
     // DUAL COLOR (NEW 🔥)
     colors: { type: [String], default: [] }, // ["#ff0000", "#00ff00"]
