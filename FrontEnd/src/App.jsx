@@ -26,7 +26,7 @@ import OrderDetails from "./OrderHistory/OrderDetails";
 import Addresses from "./OrderHistory/Addresses";
 import Login from "./Pages/Login";
 import OrderSuccess from "./Order/OrderSuccess";
-import ScrollToTop from "./Common/ScrollToTop";
+import ScrollToTop from "./ScrollToTop";
 
 import { useDispatch, useSelector } from "react-redux"; // Import hooks
 import { useEffect } from "react";
