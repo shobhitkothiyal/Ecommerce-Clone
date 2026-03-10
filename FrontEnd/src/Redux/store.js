@@ -5,7 +5,7 @@ import { customerProductReducer } from "./Customers/Product/reducer";
 import { orderReducer } from "./Customers/Order/Reducer.js";
 import { couponReducer } from "./Customers/Coupon/Reducer.js";
 import { reviewReducer } from "./Customers/Review/Reducer.js";
-import { cartReducer} from "./Customers/Cart/Reducer.js"
+import { cartReducer} from "./Customers/Cart/reducer.js";
 
 export const rootReducer = combineReducers({
   auth: authReducer,
