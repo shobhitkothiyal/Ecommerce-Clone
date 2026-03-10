@@ -4,22 +4,26 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 dotenv.config();
-const PORT = process.env.PORT;
 
+const PORT = process.env.PORT || 8000;
 const app = express();
+
 app.use(express.json());
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL, process.env.FRONTEND_URL2],
+    origin: [process.env.FRONTEND_URL, process.env.FRONTEND_URL2].filter(Boolean),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  }),
+  })
 );
 
-await DBConnect();
+// Root test route
+app.get("/", (req, res) => {
+  res.send("Backend is running!");
+});
 
-/*  {Auth Routes}  */
+// Routes
 import authRoutes from "./routes/auth.route.js";
 app.use("/api", authRoutes);
 
@@ -67,16 +71,27 @@ app.use("/api/stock-notifications", stockNotificationRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error("Globar Error Handler:", err);
-  if (res.headersSent) {
-    return next(err);
-  }
+  console.error("Global Error Handler:", err);
+  if (res.headersSent) return next(err);
   res.status(500).json({
     message: err.message || "Internal Server Error",
     error: process.env.NODE_ENV === "development" ? err : {},
   });
 });
 
-app.listen(PORT, () => {
-  console.log("Server running on port:", PORT);
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).json({ message: "Route not found" });
 });
+
+// Start server
+const startServer = async () => {
+  try {
+    await DBConnect();
+    app.listen(PORT, () => console.log("Server running on port:", PORT));
+  } catch (err) {
+    console.error("Failed to start server:", err);
+  }
+};
+
+startServer();
