@@ -1,0 +1,10 @@
+/* Admin Dashboard Styles */
+.admin-container {
+  padding: 20px;
+}
+.chart-container {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  padding: 16px;
+}
