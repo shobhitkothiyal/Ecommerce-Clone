@@ -1,0 +1,19 @@
+export const FIND_PRODUCTS_REQUEST = "FIND_PRODUCTS_REQUEST";
+export const FIND_PRODUCTS_SUCCESS = "FIND_PRODUCTS_SUCCESS";
+export const FIND_PRODUCTS_FAILURE = "FIND_PRODUCTS_FAILURE";
+
+export const FIND_PRODUCT_BY_ID_REQUEST = "FIND_PRODUCT_BY_ID_REQUEST";
+export const FIND_PRODUCT_BY_ID_SUCCESS = "FIND_PRODUCT_BY_ID_SUCCESS";
+export const FIND_PRODUCT_BY_ID_FAILURE = "FIND_PRODUCT_BY_ID_FAILURE";
+
+export const CREATE_Product_REQUEST = "CREATE_Product_REQUEST";
+export const CREATE_Product_SUCCESS = "CREATE_Product_SUCCESS";
+export const CREATE_Product_FAILURE = "CREATE_Product_FAILURE";
+
+export const UPDATE_Product_REQUEST = "UPDATE_Product_REQUEST";
+export const UPDATE_Product_SUCCESS = "UPDATE_Product_SUCCESS";
+export const UPDATE_Product_FAILURE = "UPDATE_Product_FAILURE";
+
+export const DELETE_Product_REQUEST = "DELETE_Product_REQUEST";
+export const DELETE_Product_SUCCESS = "DELETE_Product_SUCCESS";
+export const DELETE_Product_FAILURE = "DELETE_Product_FAILURE";

@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/* Custom Pagination Styles */
+.swiper-pagination-bullet {
+  width: 20px !important;
+  height: 20px !important;
+  background: transparent !important;
+  opacity: 1 !important;
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  margin: 0 4px !important;
+}
+
+/* The SVG Ring */
+.autoplay-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  stroke-width: 4px;
+  stroke: #fff; /* Inactive color (faint) */
+  fill: none;
+  stroke-dashoffset: 0;
+  stroke-opacity: 0.3;
+  transform: rotate(-90deg);
+}
+
+.autoplay-progress circle {
+  stroke-dasharray: 125; /* Circumference roughly 2 * pi * r (r=20 -> ~125) */
+  stroke-dashoffset: 125; /* Start empty */
+}
+
+/* Active Bullet Animation */
+.swiper-pagination-bullet-active .autoplay-progress {
+  stroke: #ff3333; /* Active color */
+  stroke-opacity: 1;
+}
+
+.swiper-pagination-bullet-active .autoplay-progress circle {
+  animation: progress 3.8s linear forwards; /* 3.5s delay + buffer */
+}
+
+@keyframes progress {
+  0% {
+    stroke-dashoffset: 125;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Center dot for active state (optional, if you want a solid center) */
+.swiper-pagination-bullet::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  z-index: 20;
+}
+
+.swiper-pagination-bullet-active::after {
+  background: #ff3333;
+}
