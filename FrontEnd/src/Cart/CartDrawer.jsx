@@ -224,29 +224,42 @@ function CartDrawer() {
                 name: "Uptownie",
                 description: "Order Payment",
                 order_id: razorpayOrderId,
-                handler: async function (response) {
-                    try {
-                        const verifyResponse = await axios.post(
-                            `${API_BASE_URL}/payments/verify-payment`,
-                            {
-                                razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_order_id: response.razorpay_order_id,
-                                razorpay_signature: response.razorpay_signature,
-                                shippingAddress: selectedAddress,
-                            },
-                            { headers: { Authorization: `Bearer ${token}` } },
-                        );
-
+                handler: function (response) {
+                    console.log("Payment successful:", response);
+                    
+                    axios.post(
+                        `${API_BASE_URL}/payments/verify-payment`,
+                        {
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature,
+                            shippingAddress: selectedAddress,
+                        },
+                        { headers: { Authorization: `Bearer ${token}` } },
+                    ).then((verifyResponse) => {
+                        console.log("Verification response:", verifyResponse.data);
                         if (verifyResponse.data.success) {
                             const orderId = verifyResponse.data.order._id;
                             setIsCartOpen(false);
                             setStep(1);
                             navigate(`/order-success/${orderId}`);
+                        } else {
+                            alert("Order verification failed");
                         }
-                    } catch (error) {
-                        console.error("Payment verification failed", error);
+                    }).catch((error) => {
+                        console.error("Payment verification failed:", error);
                         alert("Payment verification failed: " + (error.response?.data?.error || error.message));
+                    });
+                },
+                modal: {
+                    ondismiss: function () {
+                        console.log("Payment modal dismissed");
+                        alert("Payment cancelled. Please try again.");
                     }
+                },
+                onerror: function (error) {
+                    console.error("Razorpay error:", error);
+                    alert("Payment error: " + (error.description || error.message || "Unknown error"));
                 },
                 prefill: {
                     name: `${selectedAddress.firstName} ${selectedAddress.lastName}`,
@@ -262,7 +275,8 @@ function CartDrawer() {
             rzp1.open();
         } catch (error) {
             console.error("Error initiating payment", error);
-            alert("Could not initiate payment: " + (error.response?.data?.error || error.message));
+            const errorMsg = error.response?.data?.error || error.message || "Unknown error";
+            alert("Could not initiate payment: " + errorMsg);
         }
     };
 

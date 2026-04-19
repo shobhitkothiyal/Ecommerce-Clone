@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { FaPlus, FaCheck } from "react-icons/fa";
 import { MdArrowBack } from "react-icons/md";
@@ -13,19 +13,10 @@ const OrderHistory = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const [user, setUser] = useState({ firstName: "", lastName: "", email: "" });
   const { orders, loading } = useSelector((store) => store.order);
   const { user: authUser } = useSelector((store) => store.auth);
 
   useEffect(() => {
-    // Fetch user details
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (storedUser) {
-      setUser(storedUser);
-    } else {
-      setUser({ firstName: "User", lastName: "", email: "user@example.com" });
-    }
-
     // Fetch orders and addresses
     dispatch(getUserOrders());
     dispatch(getUserAddresses());
@@ -39,7 +30,7 @@ const OrderHistory = () => {
   };
 
   return (
-    <div className="max-w-[1390px] mx-auto px-4 py-8 animate-fade-in">
+    <div className="max-w-347.5 mx-auto px-4 py-8 animate-fade-in">
       <h1 className="text-3xl font-serif text-center mb-2">My Account</h1>
       <div className="flex justify-center text-sm text-gray-500 mb-12 gap-2">
         <Link to="/" className="hover:text-black">
@@ -77,7 +68,7 @@ const OrderHistory = () => {
         {/* Main Content */}
         <div className="flex-1">
           <p className="mb-6 text-gray-600">
-            Hello {user.firstName} (not {user.firstName}?{" "}
+            Hello {authUser?.firstName || "User"} (not {authUser?.firstName || "User"}?{" "}
             <button
               onClick={handleLogout}
               className="underline text-gray-800 hover:text-black"
@@ -160,7 +151,7 @@ const OrderHistory = () => {
             <div>
               <h3 className="text-sm font-bold mb-1">Name</h3>
               <p className="text-gray-600">
-                {user.firstName} {user.lastName}
+                {authUser?.firstName || "User"} {authUser?.lastName || ""}
               </p>
             </div>
             <div>
@@ -168,7 +159,7 @@ const OrderHistory = () => {
             </div>
             <div>
               <h3 className="text-sm font-bold mb-1">Email</h3>
-              <p className="text-gray-600">{user.email}</p>
+              <p className="text-gray-600">{authUser?.email || "user@example.com"}</p>
             </div>
           </div>
 

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../Context/CartContext";
 import { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import axios from "axios";
 
 import AuthModal from "../Components/AuthModal/AuthModal.jsx";
 import { MdOutlineShoppingBag } from "react-icons/md";
@@ -20,6 +21,7 @@ import {
 
 function Header() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { setIsCartOpen } = useCart();//cart context
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);//auth modal state
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);//orders loading state
@@ -28,6 +30,12 @@ function Header() {
   const { cartItems, cart } = useSelector((store) => store.cart);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const searchRef = useRef(null);
+
+  const baseUrl = import.meta.env.VITE_React_BASE_API_URL;
 
   const wishlistCount = user?.wishlist?.length || 0;
 
@@ -49,6 +57,10 @@ function Header() {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setShowProfileMenu(false);
+      }
+      // Close suggestions when clicking outside search
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -78,6 +90,52 @@ function Header() {
   const toggleSearch = () => {
     setIsSearchOpen((prev) => !prev);
     setSearchTerm("");
+    setSearchSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  // Handle search input and fetch suggestions
+  const handleSearchInput = async (value) => {
+    setSearchTerm(value);
+
+    if (!value.trim()) {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsLoadingSuggestions(true);
+    try {
+      const response = await axios.get(
+        `${baseUrl}/api/products`
+      );
+      const products = response.data.content || response.data || [];
+      
+      // Filter products based on search term
+      const lowerValue = value.toLowerCase();
+      const filtered = products.filter((product) => 
+        product.title?.toLowerCase().includes(lowerValue) ||
+        product.brand?.toLowerCase().includes(lowerValue) ||
+        product.category?.toLowerCase().includes(lowerValue)
+      );
+
+      setSearchSuggestions(filtered.slice(0, 6)); // Limit to 6 suggestions
+      setShowSuggestions(filtered.length > 0);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      setSearchSuggestions([]);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+
+  // Handle selecting a suggestion
+  const handleSelectSuggestion = (product) => {
+    navigate(`/product/${product.id || product._id}`);
+    setIsSearchOpen(false);
+    setSearchTerm("");
+    setSearchSuggestions([]);
+    setShowSuggestions(false);
   };
 
   return (
@@ -120,8 +178,9 @@ function Header() {
             {/* SEARCH BAR */}
             {isSearchOpen && (
               <div
+                ref={searchRef}
                 className={`
-    absolute right-0 -top-3 -translate-y-1/2 w-200
+    absolute right-0 -top-3 -translate-y-1/2 w-220
     bg-white border border-black flex items-center px-4 py-2 z-50
     transition-all duration-500 ease-out
     ${isSearchOpen
@@ -135,12 +194,20 @@ function Header() {
                   className="w-full outline-none text-black text-sm"
                   autoFocus
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchInput(e.target.value)}
+                  onFocus={() => {
+                    if (searchTerm.trim() && searchSuggestions.length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && searchTerm.trim()) {
                       navigate(`/pdt/search?q=${searchTerm}`);
                       setIsSearchOpen(false);
                       setSearchTerm("");
+                      setShowSuggestions(false);
+                    } else if (e.key === "Escape") {
+                      setShowSuggestions(false);
                     }
                   }}
                 />
@@ -155,6 +222,49 @@ function Header() {
                 >
                   ✕
                 </button>
+
+                {/* Suggestions Dropdown */}
+                {showSuggestions && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded shadow-lg max-h-80 overflow-y-auto z-50">
+                    {isLoadingSuggestions ? (
+                      <div className="flex justify-center items-center py-4">
+                        <FaSpinner className="animate-spin text-gray-400" />
+                      </div>
+                    ) : searchSuggestions.length > 0 ? (
+                      searchSuggestions.map((product, idx) => (
+                        <div
+                          key={product._id || idx}
+                          onClick={() => handleSelectSuggestion(product)}
+                          className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 hover:bg-gray-100 cursor-pointer transition-colors"
+                        >
+                          {/* Product Image */}
+                          <img
+                            src={
+                              (Array.isArray(product.images) && product.images[0]) ||
+                              (product.variants?.[0]?.images?.[0]) ||
+                              "/default-product.png"
+                            }
+                            alt={product.title}
+                            className="w-10 h-10 object-cover rounded"
+                          />
+                          {/* Product Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-black truncate">
+                              {product.title}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {product.brand || product.category || ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-center text-gray-500 text-sm">
+                        No products found
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -417,7 +527,6 @@ function Header() {
         isOpen={isAuthModalOpen}
         onClose={() => {
           setIsAuthModalOpen(false);
-          checkLoginStatus();
         }}
       />
     </>

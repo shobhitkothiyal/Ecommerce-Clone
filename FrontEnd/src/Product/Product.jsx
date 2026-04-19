@@ -100,7 +100,7 @@ function Product() {
       minDiscount: discount || 0,
       sort: sortValue || "price_low",
       pageNumber: pageNumber - 1,
-      pageSize: 12,
+      pageSize: searchQuery ? 8 : 12, // Show only 8 results for search, 12 for categories
       stock: stock,
       search: searchQuery, // Pass search query
     };

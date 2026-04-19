@@ -43,11 +43,27 @@ export const login = (userData) => async (dispatch) => {
     const { jwt_token, message } = response.data; // Backend returns jwt_token
     if (jwt_token) {
       localStorage.setItem("jwt", jwt_token);
+      
+      // Fetch user profile after successful login
+      try {
+        const userResponse = await axios.get(`${API_BASE_URL}/user/profile`, {
+          headers: {
+            Authorization: `Bearer ${jwt_token}`,
+          },
+        });
+        dispatch({
+          type: LOGIN_SUCCESS,
+          payload: { token: jwt_token, user: userResponse.data },
+        });
+      } catch (userError) {
+        // If user profile fetch fails, still dispatch login with just token
+        console.error("Failed to fetch user profile:", userError);
+        dispatch({
+          type: LOGIN_SUCCESS,
+          payload: { token: jwt_token, user: null },
+        });
+      }
     }
-    dispatch({
-      type: LOGIN_SUCCESS,
-      payload: { token: jwt_token, user: null },
-    }); // User data might need fetching separately or decoding token
     return response.data;
   } catch (error) {
     dispatch({
