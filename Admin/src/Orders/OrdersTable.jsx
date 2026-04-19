@@ -71,6 +71,11 @@ const OrdersTable = () => {
   const [adminNotes, setAdminNotes] = useState("");
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
 
+  // Search functionality
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const handleViewPaymentHistory = (order) => {
     setSelectedOrder(order);
     dispatch(getPaymentHistory(order.user._id, order._id));
@@ -194,7 +199,113 @@ const OrdersTable = () => {
     }
     handleCloseDeleteModal();
   };
+
+  // Search functions
+  const handleSearchChange = (value) => {
+    setSearchQuery(value);
+    
+    if (value.trim() === "") {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const allOrders = adminsOrder?.orders || [];
+    const suggestions = [];
+    const seenSuggestions = new Set();
+
+    const lowerValue = value.toLowerCase();
+
+    // Generate suggestions from orders
+    allOrders.forEach((order) => {
+      // Search by product title
+      order.orderItems?.forEach((item) => {
+        const title = item.product?.title || "";
+        if (
+          title.toLowerCase().includes(lowerValue) &&
+          !seenSuggestions.has(title)
+        ) {
+          suggestions.push({ type: "product", value: title });
+          seenSuggestions.add(title);
+        }
+      });
+
+      // Search by order ID
+      if (
+        order._id.toLowerCase().includes(lowerValue) &&
+        !seenSuggestions.has(order._id)
+      ) {
+        suggestions.push({ type: "orderId", value: order._id });
+        seenSuggestions.add(order._id);
+      }
+
+      // Search by customer name
+      const customerName = `${order.user?.firstName || ""} ${
+        order.user?.lastName || ""
+      }`.trim();
+      if (
+        customerName.toLowerCase().includes(lowerValue) &&
+        !seenSuggestions.has(customerName)
+      ) {
+        suggestions.push({ type: "customer", value: customerName });
+        seenSuggestions.add(customerName);
+      }
+
+      // Search by email
+      const email = order.user?.email || "";
+      if (
+        email.toLowerCase().includes(lowerValue) &&
+        !seenSuggestions.has(email)
+      ) {
+        suggestions.push({ type: "email", value: email });
+        seenSuggestions.add(email);
+      }
+    });
+
+    setSearchSuggestions(suggestions.slice(0, 8)); // Limit to 8 suggestions
+    setShowSuggestions(suggestions.length > 0);
+  };
+
+  const handleSelectSuggestion = (suggestion) => {
+    setSearchQuery(suggestion.value);
+    setShowSuggestions(false);
+  };
+
   const paidOrders = adminsOrder?.orders || [];
+
+  // Filter orders based on search query
+  const filteredOrders = (() => {
+    if (!searchQuery.trim()) {
+      return paidOrders;
+    }
+
+    const lowerQuery = searchQuery.toLowerCase();
+    return paidOrders.filter((order) => {
+      // Search in product titles
+      const titles = order.orderItems
+        ?.map((item) => item.product?.title || "")
+        .join(" ")
+        .toLowerCase();
+
+      // Search in order ID
+      const orderId = order._id.toLowerCase();
+
+      // Search in customer name
+      const customerName = `${order.user?.firstName || ""} ${
+        order.user?.lastName || ""
+      }`.toLowerCase();
+
+      // Search in email
+      const email = (order.user?.email || "").toLowerCase();
+
+      return (
+        titles.includes(lowerQuery) ||
+        orderId.includes(lowerQuery) ||
+        customerName.includes(lowerQuery) ||
+        email.includes(lowerQuery)
+      );
+    });
+  })();
 
   useEffect(() => {
     if (selectedOrder || showPaymentModal) {
@@ -704,6 +815,108 @@ const OrdersTable = () => {
             bgcolor: "#18181b",
             color: "white",
             border: "1px solid #27272a",
+            mb: 2,
+          }}
+        >
+          {/* Search Bar with Suggestions */}
+          <Box sx={{ mb: 3, position: "relative" }}>
+            <Typography
+              sx={{ mb: 1, color: "white", fontSize: "0.875rem", fontWeight: 500 }}
+            >
+              Search Orders
+            </Typography>
+            <Box sx={{ position: "relative" }}>
+              <input
+                type="text"
+                placeholder="Search by product, order ID, customer name, or email..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onFocus={() => {
+                  if (searchQuery.trim() && searchSuggestions.length > 0) {
+                    setShowSuggestions(true);
+                  }
+                }}
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  borderRadius: "8px",
+                  border: "1px solid #444",
+                  backgroundColor: "#3f3f46",
+                  color: "white",
+                  fontSize: "0.875rem",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setShowSuggestions(false);
+                  }
+                }}
+              />
+
+              {/* Suggestions Dropdown */}
+              {showSuggestions && searchSuggestions.length > 0 && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "#27272a",
+                    border: "1px solid #444",
+                    borderRadius: "8px",
+                    maxHeight: "300px",
+                    overflowY: "auto",
+                    zIndex: 1000,
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                  }}
+                >
+                  {searchSuggestions.map((suggestion, idx) => (
+                    <Box
+                      key={idx}
+                      onClick={() => handleSelectSuggestion(suggestion)}
+                      sx={{
+                        padding: "10px 16px",
+                        borderBottom: "1px solid #3f3f46",
+                        cursor: "pointer",
+                        "&:last-child": { borderBottom: "none" },
+                        "&:hover": { backgroundColor: "#3f3f46" },
+                        transition: "background-color 0.2s",
+                      }}
+                    >
+                      <Typography sx={{ color: "white", fontSize: "0.875rem" }}>
+                        {suggestion.type === "product" && "📦 "}
+                        {suggestion.type === "orderId" && "🆔 "}
+                        {suggestion.type === "customer" && "👤 "}
+                        {suggestion.type === "email" && "✉️ "}
+                        {suggestion.value}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Box>
+            {searchQuery && filteredOrders.length === 0 && (
+              <Typography
+                sx={{
+                  mt: 2,
+                  color: "#ef4444",
+                  fontSize: "0.875rem",
+                  textAlign: "center",
+                }}
+              >
+                No orders found matching "{searchQuery}"
+              </Typography>
+            )}
+          </Box>
+        </Card>
+
+        <Card
+          className="p-3"
+          sx={{
+            bgcolor: "#18181b",
+            color: "white",
+            border: "1px solid #27272a",
           }}
         >
           <Grid container spacing={2}>
@@ -837,6 +1050,9 @@ const OrdersTable = () => {
                     Id
                   </TableCell>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                    Order Date
+                  </TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
                     Payment
                   </TableCell>
                   <TableCell sx={{ color: "white", fontWeight: "bold" }}>
@@ -873,7 +1089,7 @@ const OrdersTable = () => {
               </TableHead>
 
               <TableBody>
-                {paidOrders.map((item, index) => (
+                {filteredOrders.map((item, index) => (
                   <TableRow
                     hover
                     key={item._id}
@@ -934,6 +1150,15 @@ const OrdersTable = () => {
 
                     {/* Order ID */}
                     <TableCell sx={{ color: "white" }}>{item._id}</TableCell>
+
+                    {/* Order Date */}
+                    <TableCell sx={{ color: "white" }}>
+                      {new Date(item.createdAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </TableCell>
 
                     {/* Payment Button */}
                     <TableCell>
@@ -1142,6 +1367,20 @@ const OrdersTable = () => {
                 ))}
               </TableBody>
             </Table>
+            {filteredOrders.length === 0 && (
+              <Box
+                sx={{
+                  textAlign: "center",
+                  py: 4,
+                  color: "#9ca3af",
+                  backgroundColor: "#18181b",
+                }}
+              >
+                <Typography sx={{ fontSize: "0.875rem" }}>
+                  {searchQuery ? "No orders found" : "No orders available"}
+                </Typography>
+              </Box>
+            )}
           </TableContainer>
         </Card>
 

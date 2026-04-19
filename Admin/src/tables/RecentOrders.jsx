@@ -106,7 +106,10 @@ const RecentOrders = ({ orders = [] }) => {
                     : (item?.variants?.[0]?.images?.[0] || item?.imageUrl?.[0] || item?.image || "/default-product.png");
                 const title =
                   item?.title ||
+                  order?.orderItems?.[0]?.product?.title ||
                   order?.orderItems?.[0]?.name ||
+                  order?.orderItems?.[0]?.productName ||
+                  item?.name ||
                   "Untitled product";
                 const price =
                   order?.totalDiscountedPrice ?? order?.totalPrice ?? 0;
