@@ -12,44 +12,17 @@ const razorpay = new Razorpay({
 
 const createPaymentLink = async (req, res) => {
   try {
-    // We expect the amount to be passed or calculated from the cart.
-    // Ideally, we should fetch the cart total from the backend to ensure security.
-    // For now, let's assume the frontend passes the amount OR we fetch the cart.
-    // Better: Fetch user cart to get the total.
-
-    // However, the payment_gateway_front reference passed amount.
-    // Let's use the safer approach: Calculate from cart in backend if possible, or trust frontend for now if strict cart binding isn't ready.
-    // Given the flow, let's fetch the cart service?
-    // But to keep it simple and generic as per request, let's take amount from body, but verifying against cart is best practice.
-    // Implementation: accept amount for flexibility but ideally we should fetch cart.
-    // Let's rely on req.body.amount for now to match the reference flow, or fetch cart.
-
-    // Actually, createOrder in service uses cart. So we should use cart total here too.
-    // Importing cartService to get total.
-
-    // Wait, the user might want to create a payment link for a specific order?
-    // In this flow:
-    // 1. User is in Cart.
-    // 2. User clicks Pay.
-    // 3. We call createPaymentLink.
-
-    // We need the user's cart total.
-    // Let's check req.user (from auth middleware).
-
-    // import cartService
-    // const cart = await cartService.findUserCart(req.user._id);
-    // const amount = cart.totalPayable // or similar.
-
-    // Since I don't want to import circular dependency or complex logic just yet without testing,
-    // I will accept amount from frontend but strictly validate it later or rely on frontend sending correct amount.
-    // For a robust system, we should recalculate.
-    // Let's stick to the user reference: inputs amount.
-
     const { amount, currency } = req.body;
 
     // Validate amount
     if (!amount) {
       return res.status(400).json({ error: "Amount is required" });
+    }
+
+    // Validate Razorpay credentials
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error("Razorpay credentials not configured");
+      return res.status(500).json({ error: "Payment gateway not configured" });
     }
 
     const options = {
@@ -58,9 +31,28 @@ const createPaymentLink = async (req, res) => {
       receipt: "receipt#" + Date.now(),
     };
 
-    const order = await razorpay.orders.create(options);
-    res.status(200).json(order);
+    console.log("Creating Razorpay order with options:", options);
+
+    try {
+      const order = await razorpay.orders.create(options);
+      console.log("Razorpay order created successfully:", order.id);
+      res.status(200).json(order);
+    } catch (razorpayError) {
+      console.error("Razorpay API error details:", {
+        message: razorpayError.message,
+        response: razorpayError.response,
+        statusCode: razorpayError.statusCode,
+        fullError: razorpayError
+      });
+      return res.status(500).json({ 
+        error: "Payment gateway error: " + (razorpayError.message || "Unknown error") 
+      });
+    }
   } catch (err) {
+    console.error("Error creating payment order:", {
+      message: err.message,
+      stack: err.stack
+    });
     res.status(500).send({ error: err.message });
   }
 };
@@ -71,8 +63,23 @@ const updatePaymentInformation = async (req, res) => {
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature,
-      shippingAddress, // Expected from frontend
+      shippingAddress,
     } = req.body;
+
+    console.log("Payment verification request received:", {
+      payment_id: razorpay_payment_id,
+      order_id: razorpay_order_id,
+      signature: razorpay_signature ? "***" : "missing",
+      user: req.user._id
+    });
+
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      console.error("Missing payment details");
+      return res.status(400).json({ 
+        success: false, 
+        message: "Missing payment details" 
+      });
+    }
 
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSign = crypto
@@ -80,25 +87,31 @@ const updatePaymentInformation = async (req, res) => {
       .update(sign.toString())
       .digest("hex");
 
+    console.log("Signature verification:", {
+      provided: razorpay_signature,
+      expected: expectedSign,
+      match: razorpay_signature === expectedSign
+    });
+
     const verified = razorpay_signature === expectedSign;
 
     if (verified) {
-      // Create the order using the order service
-      // We need the user from req.user
+      console.log("Payment verified successfully");
       const user = req.user;
 
       const order = await orderService.createOrder(user, shippingAddress);
 
-      // Update payment details in the order
       order.paymentDetails.paymentId = razorpay_payment_id;
       order.paymentDetails.razorpayOrderId = razorpay_order_id;
       order.paymentDetails.razorpayPaymentId = razorpay_payment_id;
       order.paymentDetails.razorpaySignature = razorpay_signature;
       order.paymentDetails.paymentStatus = "COMPLETED";
       order.paymentDetails.paymentMethod = "Razorpay";
-      order.orderStatus = "PLACED"; // Or keep PENDING until explicitly confirmed? logic says PLACED.
+      order.orderStatus = "PLACED";
 
       await order.save();
+
+      console.log("Order created:", order._id);
 
       res.status(200).json({
         success: true,
@@ -106,11 +119,13 @@ const updatePaymentInformation = async (req, res) => {
         order,
       });
     } else {
+      console.error("Signature verification failed");
       res
         .status(400)
         .json({ success: false, message: "Payment verification failed" });
     }
   } catch (err) {
+    console.error("Error updating payment information:", err.message);
     res.status(500).send({ error: err.message });
   }
 };

@@ -18,6 +18,8 @@ app.use(
   })
 );
 
+console.log("Allowed CORS origins:", [process.env.FRONTEND_URL, process.env.FRONTEND_URL2].filter(Boolean));
+
 // Root test route
 app.get("/", (req, res) => {
   res.send("Backend is running!");

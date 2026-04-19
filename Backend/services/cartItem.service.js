@@ -32,10 +32,19 @@ const updateCartItem = async (userId, cartItemId, cartItemData) => {
       // 2. Determine Target Variant (Fresh from Product)
       let targetVariant = null;
       
+      // Check if product and variants exist
+      if (!item.product) {
+        throw new Error("Product not found for this cart item");
+      }
+
+      if (!Array.isArray(item.product.variants) || item.product.variants.length === 0) {
+        throw new Error("Product variants not available");
+      }
+      
       // If updating variant, find it in product
       if (cartItemData.variant) {
         targetVariant = item.product.variants.find(
-          (v) => v._id.toString() === cartItemData.variant.toString()
+          (v) => v._id && v._id.toString() === cartItemData.variant.toString()
         );
         if (!targetVariant) {
           throw new Error("Variant not found");
@@ -46,7 +55,7 @@ const updateCartItem = async (userId, cartItemId, cartItemData) => {
         const currentVariantId = item.variant?._id || item.variant?.id; 
         if (currentVariantId) {
              targetVariant = item.product.variants.find(
-              (v) => v._id.toString() === currentVariantId.toString()
+              (v) => v._id && v._id.toString() === currentVariantId.toString()
             );
         }
         // Fallback if item.variant is not linked or structure is different, though usually it should differ.

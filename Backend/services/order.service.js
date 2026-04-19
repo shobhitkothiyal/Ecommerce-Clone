@@ -198,6 +198,7 @@ const getDashboardOverview = async () => {
       .sort({ createdAt: -1 })
       .limit(5)
       .populate("user", "firstName lastName email")
+      .populate({ path: "orderItems", populate: { path: "product" } })
       .lean();
 
     // Recent Users
