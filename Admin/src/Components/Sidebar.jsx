@@ -57,7 +57,7 @@ const Sidebar = ({ closeSidebar }) => {
       {/* Bottom avatar */}
       <div className="p-4 border-t border-white/5">
         <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
-          <span className="text-lg font-semibold text-white">VN</span>
+          <span className="text-lg font-semibold text-white">UP</span>
         </div>
       </div>
     </aside>

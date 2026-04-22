@@ -16,7 +16,7 @@ const BlogDetails = () => {
   const [loading, setLoading] = React.useState(true);
 
   const API_BASE_URL =
-    import.meta.env.VITE_React_BASE_API_URL || "http://localhost:5000";
+    import.meta.env.VITE_React_BASE_API_URL || "http://localhost:8000";
 
   /* State for selected image gallery */
   const [selectedImage, setSelectedImage] = React.useState("");
