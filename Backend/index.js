@@ -3,15 +3,16 @@ import { DBConnect } from "./config/db.config.js";
 import cors from "cors";
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config();// Load environment variables
 
 const PORT = process.env.PORT || 8000;
 const app = express();
 
+// Middleware
 app.use(express.json());
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL, process.env.FRONTEND_URL2].filter(Boolean),
+    origin: [process.env.FRONTEND_URL, process.env.FRONTEND_URL2, process.env.PROD_FRONTEND_URL].filter(Boolean),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
