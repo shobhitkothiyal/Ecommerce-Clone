@@ -211,7 +211,7 @@ function Product() {
                 <h3 className="font-bold text-sm uppercase">Color</h3>
                 <IoIosArrowUp />
               </div>
-              <div className="space-y-3 max-h-[280px] overflow-y-auto p-2 pr-2 custom-scrollbar">
+              <div className="space-y-3 max-h-70 overflow-y-auto p-2 pr-2 custom-scrollbar">
                 {[
                   { name: "Beige", color: "#F5F5DC" },
                   { name: "Black", color: "#000000" },

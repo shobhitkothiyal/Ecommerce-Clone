@@ -114,7 +114,7 @@ function ProductCard({ product, onQuickView }) {
                 {/* Tooltip Arrow */}
 <span className="absolute left-full top-1/2 -translate-y-1/2
   border-y-[6px] border-y-transparent
-  border-l-[8px] border-l-black">
+  border-l-8 border-l-black">
 </span>
 
 
@@ -154,7 +154,7 @@ function ProductCard({ product, onQuickView }) {
 {/* Tooltip Arrow */}
 <span className="absolute left-full top-1/2 -translate-y-1/2
   border-y-[6px] border-y-transparent
-  border-l-[8px] border-l-black">
+  border-l-8 border-l-black">
 </span>
 
                 </div>

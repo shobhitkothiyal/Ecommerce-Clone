@@ -460,11 +460,11 @@ function ProductDetails() {
 
                   {/* Tooltip sliding from left */}
                   <span className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-3 py-1 bg-black text-white text-sm rounded-md whitespace-nowrap 
-                         opacity-0 translate-x-[-10px] group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300 ease-out z-50">
+                         opacity-0 -translate-x-2.5 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300 ease-out z-50">
                     {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
 
                     {/* Triangle pointer */}
-                    <span className="absolute right-[-4px] top-1/2 -translate-y-1/2 w-2 h-2 bg-black rotate-45"></span>
+                    <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-black rotate-45"></span>
                   </span>
                 </button>
               </div>
@@ -678,7 +678,7 @@ function ProductDetails() {
                   <div className="space-y-4">
                     <div className="flex items-stretch gap-4">
                       {/* Quantity Control */}
-                      <div className="flex items-stretch rounded border border-gray-300 h-[54px] bg-white shrink-0">
+                      <div className="flex items-stretch rounded border border-gray-300 h-13.5 bg-white shrink-0">
                         <button
                           onClick={handleDecreaseQuantity}
                           className="px-5 hover:bg-zinc-50 transition-colors flex items-center justify-center"
@@ -686,7 +686,7 @@ function ProductDetails() {
                         >
                           <FiMinus size={16} className={isSoldOut ? "text-gray-300" : "text-black"} />
                         </button>
-                        <div className={`px-4 min-w-[50px] flex items-center justify-center font-bold text-base ${isSoldOut ? "text-gray-300" : "text-black"}`}>
+                        <div className={`px-4 min-w-12.5 flex items-center justify-center font-bold text-base ${isSoldOut ? "text-gray-300" : "text-black"}`}>
                           {quantity}
                         </div>
                         <button
@@ -849,7 +849,7 @@ function ProductDetails() {
                               key={index}
                               className="relative pl-6 mb-4 text-[14.5px] font-semibold text-gray-800"
                             >
-                              <span className="absolute left-0 top-[9px] w-[6px] h-[6px] rounded-full bg-gray-400"></span>
+                              <span className="absolute left-0 top-2.25 w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                               {detail.key}
                             </li>
                           );
@@ -862,7 +862,7 @@ function ProductDetails() {
                               key={index}
                               className="relative pl-6 mb-4 text-[14.5px] leading-[1.6] text-gray-600"
                             >
-                              <span className="absolute left-0 top-[9px] w-[6px] h-[6px] rounded-full bg-gray-400"></span>
+                              <span className="absolute left-0 top-2.25 w-1.5 h-1.5 rounded-full bg-gray-400"></span>
 
                               <span className="font-semibold text-gray-700">
                                 {detail.key}-
